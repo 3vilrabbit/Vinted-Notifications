@@ -7,6 +7,11 @@ from logger import get_logger
 # Get logger for this module
 logger = get_logger(__name__)
 
+# Vinted stopped publishing listing times in September 2026, so "is this item new?"
+# is answered purely by "have we recorded its id before?". That makes a wiped or
+# freshly seeded database the only real flood risk, and this caps the blast radius.
+MAX_NOTIFICATIONS_PER_RUN = 10
+
 
 def process_query(query, name=None):
     """
@@ -311,54 +316,87 @@ def clear_item_queue(items_queue, new_items_queue):
     if not items_queue.empty():
         data, query_id = items_queue.get()
         banwords_str = db.get_parameter("banwords")
+
+        # Read the watermark once, before the loop. It doubles as the "has this query
+        # ever produced anything?" flag, and the updates made below would otherwise
+        # cut a first-run priming pass short right after the first item.
+        last_query_timestamp = db.get_last_timestamp(query_id)
+        is_first_run = last_query_timestamp is None
+        if is_first_run:
+            logger.info(
+                f"First run for query {query_id}: recording {len(data)} item(s) "
+                f"without notifying, so the existing catalogue is not replayed."
+            )
+
+        to_notify = []
         for item in reversed(data):
 
-            # If already in db, pass
-            last_query_timestamp = db.get_last_timestamp(query_id)
+            # The watermark is only meaningful when the API actually supplied a
+            # listing time. Otherwise raw_timestamp is merely when we saw the item,
+            # and comparing it against the watermark would discard every new item.
             if (
-                last_query_timestamp is not None
+                item.has_real_timestamp
+                and last_query_timestamp is not None
                 and last_query_timestamp >= item.raw_timestamp
             ):
-                pass
+                continue
             # In case of multiple queries, we need to check if the item is already in the db
-            elif db.is_item_in_db_by_id(item.id) is True:
+            if db.is_item_in_db_by_id(item.id) is True:
                 # We update the timestamp
                 db.update_last_timestamp(query_id, item.raw_timestamp)
-                pass
+                continue
             # If there's an allowlist and
             # If the user's country is not in the allowlist, we just update the timestamp
-            elif db.get_allowlist() != 0 and (
+            if db.get_allowlist() != 0 and (
                 get_user_country(item.raw_data["user"]["id"])
             ) not in (db.get_allowlist() + ["XX"]):
                 db.update_last_timestamp(query_id, item.raw_timestamp)
-                pass
+                continue
             # Check if the item title contains any banwords
-            elif banwords_str and contains_banwords(item.title, banwords_str):
+            if banwords_str and contains_banwords(item.title, banwords_str):
                 # If it contains banwords, just update the timestamp and skip
                 db.update_last_timestamp(query_id, item.raw_timestamp)
-                pass
-            else:
-                # We create the message
-                message_template = db.get_parameter("message_template")
-                content = message_template.format(
-                    title=item.title,
-                    price=str(item.price) + " " + item.currency,
-                    brand=item.brand_title,
-                    image=None if item.photo is None else item.photo,
-                )
-                # add the item to the queue
-                new_items_queue.put((content, item.url, "Open Vinted", None, None))
-                # new_items_queue.put((content, item.url, "Open Vinted", item.buy_url, "Open buy page"))
-                # Add the item to the db
-                db.add_item_to_db(
-                    id=item.id,
-                    timestamp=item.raw_timestamp,
-                    price=item.price,
-                    title=item.title,
-                    photo_url=item.photo,
-                    query_id=query_id,
-                    currency=item.currency,
-                )
+                continue
+
+            # Being recorded is what stops an item coming back next run, so every
+            # item that reaches this point is written to the db whether or not it
+            # ends up being announced.
+            to_notify.append(item)
+            db.add_item_to_db(
+                id=item.id,
+                timestamp=item.raw_timestamp,
+                price=item.price,
+                title=item.title,
+                photo_url=item.photo,
+                query_id=query_id,
+                currency=item.currency,
+            )
+
+        if is_first_run:
+            return
+
+        # data arrives newest first and is walked in reverse, so to_notify runs
+        # oldest to newest. Trim from the front: a backlog is worth dropping, the
+        # listings that just appeared are not.
+        if len(to_notify) > MAX_NOTIFICATIONS_PER_RUN:
+            logger.warning(
+                f"{len(to_notify)} unseen items for query {query_id}; notifying the "
+                f"{MAX_NOTIFICATIONS_PER_RUN} most recent and recording the rest silently."
+            )
+            to_notify = to_notify[-MAX_NOTIFICATIONS_PER_RUN:]
+
+        for item in to_notify:
+            # We create the message
+            message_template = db.get_parameter("message_template")
+            content = message_template.format(
+                title=item.title,
+                price=str(item.price) + " " + item.currency,
+                brand=item.brand_title,
+                image=None if item.photo is None else item.photo,
+            )
+            # add the item to the queue
+            new_items_queue.put((content, item.url, "Open Vinted", None, None))
+            # new_items_queue.put((content, item.url, "Open Vinted", item.buy_url, "Open buy page"))
 
 
 def contains_banwords(title, banwords_str):

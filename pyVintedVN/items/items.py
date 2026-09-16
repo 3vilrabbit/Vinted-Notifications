@@ -50,9 +50,11 @@ class Items:
         # Parse the URL to get the API parameters
         params = self.parse_url(url, nbr_items, page, time)
 
-        # Construct the API URL
+        # Construct the API URL. The catalogue moved to a dedicated host
+        # (api.vinted.<tld>) and no longer answers on the www host.
         api_url = (
-            f"https://{locale}{Urls.VINTED_API_URL}/{Urls.VINTED_PRODUCTS_ENDPOINT}"
+            f"https://{requester.get_api_host()}"
+            f"{Urls.VINTED_API_URL}/{Urls.VINTED_PRODUCTS_ENDPOINT}"
         )
 
         try:
@@ -66,7 +68,7 @@ class Items:
 
             # Return either Item objects or raw JSON data
             if not json:
-                return [Item(_item) for _item in items]
+                return [Item(_item, locale) for _item in items]
             else:
                 return items
 
@@ -150,7 +152,8 @@ class Items:
             "time": time,
         }
 
-        return params
+        # The legacy API ignored blank filters; svc-catalogue answers 400 to them.
+        return {k: v for k, v in params.items() if v not in ("", None)}
 
     # Aliases for backward compatibility
     parseUrl = parse_url

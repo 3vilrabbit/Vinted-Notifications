@@ -93,12 +93,15 @@ class Items:
         # Parse the query parameters from the URL
         queries = parse_qsl(urlparse(url).query)
 
-        # Construct the parameters dictionary
+        # Construct the parameters dictionary. The id filters were renamed to
+        # attribute_ids[<singular>] with the September 2026 API move; the old
+        # *_ids names are still accepted but silently ignored, which returns
+        # unfiltered results rather than an error.
         params = {
             "search_text": "+".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "search_text"])
             ),
-            "video_game_platform_ids": ",".join(
+            "attribute_ids[video_game_platform]": ",".join(
                 map(
                     str,
                     [
@@ -108,24 +111,27 @@ class Items:
                     ],
                 )
             ),
-            "catalog_ids": ",".join(
+            "attribute_ids[catalog]": ",".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "catalog[]"])
             ),
-            "color_ids": ",".join(
+            "attribute_ids[color]": ",".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "color_ids[]"])
             ),
-            "brand_ids": ",".join(
+            "attribute_ids[brand]": ",".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "brand_ids[]"])
             ),
-            "size_ids": ",".join(
+            "attribute_ids[size]": ",".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "size_ids[]"])
             ),
-            "material_ids": ",".join(
+            "attribute_ids[material]": ",".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "material_ids[]"])
             ),
-            "status_ids": ",".join(
+            "attribute_ids[status]": ",".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "status_ids[]"])
             ),
+            # country and city have no working attribute_ids equivalent: the new
+            # names are accepted but match nothing, so zeroing a query is worse
+            # than the old names simply being ignored.
             "country_ids": ",".join(
                 map(str, [tpl[1] for tpl in queries if tpl[0] == "country_ids[]"])
             ),

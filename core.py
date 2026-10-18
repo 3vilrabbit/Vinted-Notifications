@@ -1,4 +1,5 @@
 import db
+import html
 import requests
 from pyVintedVN import Vinted, requester
 from urllib.parse import urlparse, parse_qs, urlencode, urlunparse
@@ -13,7 +14,7 @@ logger = get_logger(__name__)
 MAX_NOTIFICATIONS_PER_RUN = 10
 
 
-def process_query(query, name=None):
+def process_query(query, name=None, banwords=None):
     """
     Process a Vinted query URL by:
     1. Checking if the URL is a brand URL and converting it to standard format if needed
@@ -27,6 +28,7 @@ def process_query(query, name=None):
     Args:
         query (str): The Vinted query URL
         name (str, optional): A name for the query. If provided, it will be used as the query name.
+        banwords (str, optional): Banwords for this query only, separated by "|||".
 
     Returns:
         tuple: (message, is_new_query)
@@ -84,7 +86,7 @@ def process_query(query, name=None):
         return "Query already exists.", False
     else:
         # add the query to the db
-        db.add_query_to_db(processed_query, name)
+        db.add_query_to_db(processed_query, name, banwords)
         return "Query added.", True
 
 
@@ -145,7 +147,7 @@ def process_remove_query(number):
         return "Invalid number.", False
 
 
-def process_update_query(query_id, query, name):
+def process_update_query(query_id, query, name, banwords=None):
     """
     Process the update of a query in the database.
 
@@ -153,6 +155,7 @@ def process_update_query(query_id, query, name):
         query_id (int): The ID of the query to update
         query (str): The new Vinted query URL
         name (str, optional): A new name for the query. If provided, it will be used as the query name.
+        banwords (str, optional): Banwords for this query only, separated by "|||".
 
     Returns:
         tuple: (message, success)
@@ -185,7 +188,7 @@ def process_update_query(query_id, query, name):
     )
 
     # Update the query in the database
-    if db.update_query_in_db(query_id, processed_query, name):
+    if db.update_query_in_db(query_id, processed_query, name, banwords):
         return "Query updated.", True
     else:
         return "Failed to update query.", False
@@ -308,6 +311,26 @@ def process_items(queue):
         logger.info(f"Scraped {len(data)} items for query: {query[1]}")
 
 
+def get_query_display_name(query_id, query_row):
+    """
+    Get the name shown for a query in notifications: its name, else its search text, else its id.
+
+    Args:
+        query_id (int): The ID of the query
+        query_row (tuple): The row from db.get_query_by_id, or None if the query no longer exists
+
+    Returns:
+        str: The name to show for the query
+    """
+    if query_row is None:
+        return f"Query #{query_id}"
+    _, query_url, _, query_name, _ = query_row
+    if query_name:
+        return query_name
+    search_text = parse_qs(urlparse(query_url).query).get("search_text", [None])[0]
+    return search_text or f"Query #{query_id}"
+
+
 def clear_item_queue(items_queue, new_items_queue):
     """
     Process items from the items_queue.
@@ -315,7 +338,12 @@ def clear_item_queue(items_queue, new_items_queue):
     """
     if not items_queue.empty():
         data, query_id = items_queue.get()
-        banwords_str = db.get_parameter("banwords")
+        query_row = db.get_query_by_id(query_id)
+        query_name = get_query_display_name(query_id, query_row)
+        # Global banwords apply to every query, the query's own list only to that query
+        global_banwords = db.get_parameter("banwords")
+        query_banwords = query_row[4] if query_row and query_row[4] else ""
+        banwords_str = "|||".join(w for w in [global_banwords, query_banwords] if w)
 
         # Read the watermark once, before the loop. It doubles as the "has this query
         # ever produced anything?" flag, and the updates made below would otherwise
@@ -388,12 +416,18 @@ def clear_item_queue(items_queue, new_items_queue):
         for item in to_notify:
             # We create the message
             message_template = db.get_parameter("message_template")
+            # Escaped because the message is sent with Telegram's HTML parse mode
+            escaped_query_name = html.escape(query_name)
             content = message_template.format(
                 title=item.title,
                 price=str(item.price) + " " + item.currency,
                 brand=item.brand_title,
                 image=None if item.photo is None else item.photo,
+                query=escaped_query_name,
             )
+            # Templates saved before {query} existed would otherwise never show the query
+            if "{query}" not in message_template:
+                content = f"🔎 <b>{escaped_query_name}</b>\n{content}"
             # add the item to the queue
             new_items_queue.put((content, item.url, "Open Vinted", None, None))
             # new_items_queue.put((content, item.url, "Open Vinted", item.buy_url, "Open buy page"))

@@ -105,10 +105,28 @@ def get_queries():
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        cursor.execute("SELECT id, query, last_item, query_name FROM queries")
+        cursor.execute("SELECT id, query, last_item, query_name, banwords FROM queries")
         return cursor.fetchall()
     except Exception:
         print_exc()
+    finally:
+        if conn:
+            conn.close()
+
+
+def get_query_by_id(query_id):
+    conn = None
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, query, last_item, query_name, banwords FROM queries WHERE id=?",
+            (query_id,),
+        )
+        return cursor.fetchone()
+    except Exception:
+        print_exc()
+        return None
     finally:
         if conn:
             conn.close()
@@ -135,20 +153,15 @@ def is_query_in_db(processed_query):
             conn.close()
 
 
-def add_query_to_db(query, name=None):
+def add_query_to_db(query, name=None, banwords=None):
     conn = None
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-        if name:
-            cursor.execute(
-                "INSERT INTO queries (query, last_item, query_name) VALUES (?, NULL, ?)",
-                (query, name),
-            )
-        else:
-            cursor.execute(
-                "INSERT INTO queries (query, last_item) VALUES (?, NULL)", (query,)
-            )
+        cursor.execute(
+            "INSERT INTO queries (query, last_item, query_name, banwords) VALUES (?, NULL, ?, ?)",
+            (query, name, banwords),
+        )
         conn.commit()
     except Exception:
         print_exc()
@@ -210,7 +223,7 @@ def remove_all_queries_from_db():
             conn.close()
 
 
-def update_query_in_db(query_id, query, name):
+def update_query_in_db(query_id, query, name=None, banwords=None):
     """
     Update an existing query in the database.
 
@@ -227,8 +240,8 @@ def update_query_in_db(query_id, query, name):
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute(
-            "UPDATE queries SET query=?, query_name=? WHERE id=?",
-            (query, name, query_id),
+            "UPDATE queries SET query=?, query_name=?, banwords=? WHERE id=?",
+            (query, name, banwords, query_id),
         )
         conn.commit()
         return True

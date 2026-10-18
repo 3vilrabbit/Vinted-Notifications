@@ -3,6 +3,18 @@
 {% block title %}Queries - Vinted Notifications{% endblock %}
 
 {% block content %}
+{% macro banwords_field(prefix, value) %}
+<div class="input-group mb-2">
+    <input type="text" class="form-control" id="{{ prefix }}-banword-input" placeholder="Enter a word to ban">
+    <button class="btn btn-outline-secondary" type="button" id="{{ prefix }}-banword-add">Add</button>
+</div>
+<div id="{{ prefix }}-banword-tags" class="d-flex flex-wrap gap-2 mb-2">
+    <!-- Banwords will be displayed here as tags -->
+</div>
+<input type="hidden" id="{{ prefix }}-banwords" name="banwords" value="{{ value }}">
+<small class="form-text text-muted">Items with these words in their title are skipped for this query only. Global banwords still apply.</small>
+{% endmacro %}
+
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Queries</h1>
 </div>
@@ -48,6 +60,13 @@
                         <div class="col-md-2 d-flex align-items-center">
                             <button type="submit" class="btn btn-primary w-100">Add Query</button>
                         </div>
+
+                        <!-- Banwords (optional, this query only) -->
+                        <div class="col-12">
+                            <label for="add-banword-input" class="form-label">Banwords&nbsp;<span
+                                    class="text-muted">(optional)</span></label>
+                            {{ banwords_field('add', '') }}
+                        </div>
                     </div>
                 </form>
             </div>
@@ -80,6 +99,9 @@
                             <td>{{ query.display }}</td>
                             <td>{{ query.last_found_item }}</td>
                             <td>
+                                {% if query.banwords %}
+                                <div class="small text-muted mb-1">Banned words: {{ query.banwords.split('|||') | join(', ') }}</div>
+                                {% endif %}
                                 <div class="btn-group" role="group">
                                     <a href="/items?query={{ query.query_id }}"
                                        class="btn btn-sm btn-outline-primary">
@@ -131,6 +153,11 @@
                                                                value="{{ query.display if query.display != query.query else '' }}"
                                                                required
                                                                placeholder="My search">
+                                                    </div>
+                                                    <div class="mb-3">
+                                                        <label for="edit{{ query.id }}-banword-input" class="form-label">Banwords
+                                                            <span class="text-muted">(optional)</span></label>
+                                                        {{ banwords_field('edit' ~ query.id, query.banwords) }}
                                                     </div>
                                                 </div>
                                                 <div class="modal-footer">
@@ -217,4 +244,14 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/banwords.js') }}"></script>
+<script>
+    initBanwordsField('add');
+    {% for query in queries %}
+    initBanwordsField('edit{{ query.id }}');
+    {% endfor %}
+</script>
 {% endblock %}

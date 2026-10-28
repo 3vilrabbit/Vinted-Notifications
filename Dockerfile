@@ -9,7 +9,7 @@ WORKDIR /app
 
 # System deps: gosu to drop privileges cleanly
 RUN apt-get update \
- && apt-get install -y --no-install-recommends gosu \
+ && apt-get install -y --no-install-recommends gosu tzdata \
  && rm -rf /var/lib/apt/lists/*
 
 # Create runtime user/group and app dirs (inside image)
@@ -26,7 +26,9 @@ COPY . .
 
 # EntryPoint script (added below)
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Strip Windows CRLF line endings (if any) so the shebang resolves on Linux
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+  && chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Expose ports
 EXPOSE 8000

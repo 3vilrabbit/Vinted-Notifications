@@ -1,0 +1,11 @@
+# Used by docker-compose.caddy.yml. VN_DOMAIN comes from the .env file.
+{$VN_DOMAIN} {
+	encode gzip
+
+	# Refuse oversized bodies before they reach the app
+	request_body {
+		max_size 512KB
+	}
+
+	reverse_proxy vinted-notifications:8000
+}

@@ -1,0 +1,41 @@
+# Optional HTTPS in front of the app, with a certificate from Let's Encrypt that renews itself.
+# Needed for the installable app on phones and for push notifications on iPhone/iPad.
+#
+# 1. Point a domain (a free DuckDNS one works) at this server and open ports 80 and 443.
+# 2. Put the domain in a .env file next to this one:   VN_DOMAIN=vinted.example.com
+# 3. Start with both files:
+#      docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+#
+# The app's own ports are then reachable from this machine only; everything goes through Caddy.
+services:
+  vinted-notifications:
+    ports: !override
+      - "127.0.0.1:8000:8000"
+      - "127.0.0.1:8080:8080"
+    environment:
+      - VN_TRUST_PROXY=1
+      - VN_COOKIE_SECURE=1
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    environment:
+      - VN_DOMAIN=${VN_DOMAIN:?set VN_DOMAIN in .env}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    depends_on:
+      - vinted-notifications
+
+volumes:
+  caddy_data:
+  caddy_config:

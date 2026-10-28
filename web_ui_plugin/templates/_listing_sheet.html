@@ -1,0 +1,46 @@
+{# The listing card: the landing page of a notification and the pop-up on the Items page. #}
+<article class="lc-card glass" data-lc-item="{{ item.item if item else '' }}">
+    <a class="lc-x" href="{{ url_for('items') }}" data-lc-close aria-label="{{ _('Close') }}"><i class="bi bi-x-lg"></i></a>
+    {% if item %}
+    <div class="lc-photo">
+        {% if item.photo_url %}<img src="{{ item.photo_url }}" alt="">{% else %}<span class="ph"><i class="bi bi-image"></i></span>{% endif %}
+        <span class="lc-price">{{ item.price }} {{ item.currency }}</span>
+        <span class="lc-state" hidden></span>
+    </div>
+    <div class="lc-body">
+        <h1 class="lc-title">{{ item.title }}</h1>
+        <p class="lc-meta">
+            {% if item.query_name %}<span>{{ item.query_name }}</span>{% endif %}
+            <span><i class="bi bi-clock"></i> <time class="local-ts" data-rel="1" data-ts="{{ item.timestamp }}"></time></span>
+        </p>
+        <div class="lc-seller">
+            <span class="lc-avatar" aria-hidden="true">{{ (item.seller_login or "?")[:1]|upper }}</span>
+            <div class="lc-seller-main">
+                <div class="lc-seller-name">{{ item.seller_login or _("Seller unknown") }}</div>
+                {% if reliability[0] == "none" %}
+                <div class="lc-seller-sub">{{ _("no rating") }}</div>
+                {% else %}
+                <div class="lc-seller-sub"><span class="rating"><i class="bi bi-star-fill"></i> {{ '%.1f'|format(item.seller_stars) }} <small>({{ item.seller_reviews or 0 }})</small></span></div>
+                {% endif %}
+            </div>
+            {% if reliability[0] != "none" %}
+            <span class="trust trust-{{ reliability[0] }}">
+                {% if reliability[0] == "high" %}{{ _("Very reliable") }}{% elif reliability[0] == "good" %}{{ _("Reliable") }}{% elif reliability[0] == "new" %}{{ _("New seller") }}{% else %}{{ _("Check before buying") }}{% endif %}
+            </span>
+            {% endif %}
+        </div>
+        {% if reliability[0] != "none" %}
+        <div class="trust-meter" role="img" aria-label="{{ _('Seller reliability') }} {{ reliability[1] }}%"><span class="trust-{{ reliability[0] }}" style="width: {{ reliability[1] }}%"></span></div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="lc-body lc-empty">
+        <h1 class="lc-title">{{ _("Opening Vinted") }}</h1>
+        <p class="lc-meta">{{ _("This listing is no longer in your items.") }}</p>
+    </div>
+    {% endif %}
+    <div class="lc-actions">
+        <a class="btn btn-primary btn-lg" id="openVinted" href="{{ target }}" target="_blank" rel="noopener" data-android="{{ android_intent }}">{{ _("Open in Vinted") }} <i class="bi bi-box-arrow-up-right"></i></a>
+        {% if item %}<button type="button" class="lc-delete js-del-item" data-item-id="{{ item.item }}" data-close-sheet="1"><i class="bi bi-trash3"></i> <span class="del-idle">{{ _("Remove from my items") }}</span><span class="del-label">{{ _("Tap again to remove") }}</span></button>{% endif %}
+    </div>
+</article>

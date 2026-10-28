@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Accounts") }} - Vinted Notifications{% endblock %}
+
+{% block content %}
+{% set admins = users|selectattr('role', 'equalto', 'admin')|rejectattr('disabled')|list %}
+{% set members = users|selectattr('role', 'ne', 'admin')|rejectattr('disabled')|list %}
+{% set disabled = users|selectattr('disabled')|list %}
+
+<div class="d-flex justify-content-between flex-wrap align-items-center gap-2">
+    <h1 class="h2">{{ _("Accounts") }}</h1>
+</div>
+
+<div class="contacts-tools">
+    <div class="searchbar">
+        <i class="bi bi-search"></i>
+        <input type="search" id="userSearch" placeholder="{{ _('Search accounts') }}" aria-label="{{ _('Search accounts') }}" autocapitalize="none">
+    </div>
+    <div class="segmented" id="userFilter" role="tablist">
+        <button type="button" class="seg active" data-filter="all">{{ _("All") }}<span class="seg-count">{{ users|length }}</span></button>
+        <button type="button" class="seg" data-filter="admin">{{ _("Administrators") }}<span class="seg-count">{{ admins|length }}</span></button>
+        <button type="button" class="seg" data-filter="user">{{ _("Members") }}<span class="seg-count">{{ members|length }}</span></button>
+        {% if disabled %}<button type="button" class="seg" data-filter="disabled">{{ _("Disabled") }}<span class="seg-count">{{ disabled|length }}</span></button>{% endif %}
+    </div>
+</div>
+
+<div class="ios-group new-account">
+    <button type="button" class="ios-row ios-link ios-btn-row" data-bs-toggle="modal" data-bs-target="#newUserSheet">
+        <span class="ios-label"><span class="row-ico" style="--c: #34C759"><i class="bi bi-person-plus-fill"></i></span>{{ _("New account") }}</span><i class="bi bi-chevron-right chev"></i>
+    </button>
+</div>
+
+{% for title, group, kind in ((_("Administrators"), admins, 'admin'), (_("Members"), members, 'user'), (_("Disabled"), disabled, 'disabled')) %}
+{% if group %}
+<section class="contact-section" data-kind="{{ kind }}">
+    <div class="ios-title">{{ title }}</div>
+    <div class="ios-group">
+        {% for user in group %}
+        <button type="button" class="contact" data-bs-toggle="modal" data-bs-target="#userModal{{ user.id }}" data-name="{{ user.username|lower }}" data-kind="{{ kind }}">
+            <span class="avatar avatar-md" style="--hue: {{ user.hue }}">{{ user.username[:1]|upper }}</span>
+            <span class="contact-main">
+                <strong>{{ user.username }}{% if user.id == current_user.id %} <span class="chip">{{ _("You") }}</span>{% endif %}</strong>
+                <small data-user-summary="{{ user.id }}">{{ _n("%(n)s query", "%(n)s queries", user.query_count) }} &middot; {{ _n("%(n)s item", "%(n)s items", user.item_count) }}</small>
+            </span>
+            <i class="bi bi-chevron-right chev"></i>
+        </button>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+{% endfor %}
+<div class="empty" id="usersEmpty" hidden>
+    <i class="bi bi-person-x"></i>
+    <strong>{{ _("No accounts match") }}</strong>
+</div>
+
+<!-- New account -->
+<div class="modal fade sheet" id="newUserSheet" tabindex="-1" aria-labelledby="newUserLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <form class="modal-content" action="/users/create" method="post">
+            <div class="sheet-grabber" aria-hidden="true"></div>
+            <div class="sheet-bar">
+                <button type="button" class="sheet-action" data-bs-dismiss="modal">{{ _("Cancel") }}</button>
+                <h2 class="sheet-title" id="newUserLabel">{{ _("New account") }}</h2>
+                <span></span>
+            </div>
+            <div class="sheet-body">
+                <div class="ios-group">
+                    <label class="ios-row" for="new_username"><span class="ios-label">{{ _("Username") }}</span>
+                        <input type="text" class="ios-input" id="new_username" name="username" pattern="[A-Za-z0-9_.\-]{3,32}" autocomplete="off" autocapitalize="none" spellcheck="false" required></label>
+                    <label class="ios-row" for="new_user_password"><span class="ios-label">{{ _("Password") }}</span>
+                        <input type="password" class="ios-input" id="new_user_password" name="password" minlength="{{ min_password_length }}" data-pw-meter="{{ min_password_length }}" autocomplete="new-password" required></label>
+                    <label class="ios-row" for="new_role"><span class="ios-label">{{ _("Role") }}</span>
+                        <select class="ios-select" id="new_role" name="role">
+                            <option value="user">{{ _("Member") }}</option>
+                            <option value="admin">{{ _("Administrator") }}</option>
+                        </select></label>
+                </div>
+                <p class="ios-foot">{{ _("Passwords need at least %(n)s characters; a phrase of a few words works well. Common and breached passwords are refused.", n=min_password_length) }}</p>
+                <p class="ios-foot">{{ _("Members have their own queries, items, notifications and settings. Administrators also manage the server and the accounts.") }}</p>
+                <button type="submit" class="btn btn-primary btn-lg sheet-submit"><i class="bi bi-person-plus-fill"></i> {{ _("Create account") }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- One sheet per account -->
+{% for user in users %}
+<div class="modal fade sheet" id="userModal{{ user.id }}" tabindex="-1" aria-labelledby="userModalLabel{{ user.id }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="sheet-grabber" aria-hidden="true"></div>
+            <div class="sheet-bar">
+                <span></span>
+                <h2 class="sheet-title" id="userModalLabel{{ user.id }}">{{ user.username }}</h2>
+                <button type="button" class="sheet-action sheet-done" data-bs-dismiss="modal">{{ _("Done") }}</button>
+            </div>
+            <div class="sheet-body">
+                <div class="profile">
+                    <span class="avatar avatar-xl" style="--hue: {{ user.hue }}">{{ user.username[:1]|upper }}</span>
+                    <strong>{{ user.username }}</strong>
+                    <span class="profile-chips">
+                        <span class="chip {% if user.role == 'admin' %}chip-ok{% endif %}">{{ _("Administrator") if user.role == 'admin' else _("Member") }}</span>
+                        {% if user.disabled %}<span class="chip chip-warn">{{ _("Disabled") }}</span>{% endif %}
+                    </span>
+                    <small class="text-muted">{{ _("Created") }} {{ user.created[:10] }} &middot; <span data-user-summary="{{ user.id }}">{{ _n("%(n)s query", "%(n)s queries", user.query_count) }} &middot; {{ _n("%(n)s item", "%(n)s items", user.item_count) }}</span></small>
+                </div>
+
+                <div class="ios-title">{{ _("Queries") }}</div>
+                {% if user.queries %}
+                <div class="ios-group">
+                    {% for q in user.queries %}
+                    <div class="ios-row">
+                        <span class="ios-label">{{ q.name }}{% if q.push %} <i class="bi bi-bell-fill text-muted small" title="{{ _('Push') }}"></i>{% endif %}
+                            <span class="ios-sub">{% if q.last_ts %}{{ _("Last found") }}: <time class="local-ts" data-rel="1" data-ts="{{ q.last_ts }}"></time>{% else %}{{ _("Never") }}{% endif %}</span></span>
+                        <span class="text-muted">{{ _n("%(n)s item", "%(n)s items", q.item_count) }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="ios-foot">{{ _("No queries yet") }}</p>
+                {% endif %}
+
+                {% if user.recent_items %}
+                <div class="ios-title">{{ _("Latest items") }}</div>
+                <div class="ios-group">
+                    {% for item in user.recent_items %}
+                    <div class="ios-row">
+                        <span class="ios-label">{{ item.title }}
+                            <span class="ios-sub">{{ item.query_name or '' }}{% if item.seller_login %} &middot; {{ item.seller_login }}{% endif %}{% if item.when %} &middot; {{ item.when }}{% endif %}</span></span>
+                        <span class="text-muted">{{ '%g'|format(item.price) }} {{ item.currency }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <div class="ios-title">{{ _("Role") }}</div>
+                <form action="/users/{{ user.id }}/update" method="post" class="ios-group">
+                    <input type="hidden" name="action" value="role">
+                    <label class="ios-row" for="role{{ user.id }}"><span class="ios-label">{{ _("Role") }}</span>
+                        <select class="ios-select" id="role{{ user.id }}" name="role" onchange="this.form.submit()">
+                            <option value="user" {% if user.role != 'admin' %}selected{% endif %}>{{ _("Member") }}</option>
+                            <option value="admin" {% if user.role == 'admin' %}selected{% endif %}>{{ _("Administrator") }}</option>
+                        </select></label>
+                </form>
+
+                <div class="ios-title">{{ _("Reset password") }}</div>
+                <form action="/users/{{ user.id }}/update" method="post" class="ios-group">
+                    <input type="hidden" name="action" value="password">
+                    <label class="ios-row" for="pw{{ user.id }}"><span class="ios-label">{{ _("New password") }}</span>
+                        <input type="password" class="ios-input" id="pw{{ user.id }}" name="password" minlength="{{ min_password_length }}" data-pw-meter="{{ min_password_length }}" autocomplete="new-password" required></label>
+                    <button type="submit" class="ios-row ios-button">{{ _("Reset password") }}</button>
+                </form>
+
+                {% if user.id != current_user.id %}
+                <div class="ios-group mt-4">
+                    <form action="/users/{{ user.id }}/update" method="post">
+                        <input type="hidden" name="action" value="disable">
+                        <button type="submit" class="ios-row ios-button">{{ _("Enable account") if user.disabled else _("Disable account") }}</button>
+                    </form>
+                    <form action="/users/{{ user.id }}/delete" method="post" onsubmit='return confirm({{ _("Delete this account with all its queries and items?")|tojson }});'>
+                        <button type="submit" class="ios-row ios-button ios-danger">{{ _("Delete account") }}</button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const search = document.getElementById('userSearch');
+        const filterBar = document.getElementById('userFilter');
+        let kind = 'all';
+
+        function apply() {
+            const needle = search.value.trim().toLowerCase();
+            let shown = 0;
+            document.querySelectorAll('.contact').forEach(function (row) {
+                const visible = (kind === 'all' || row.dataset.kind === kind) && (!needle || row.dataset.name.indexOf(needle) !== -1);
+                row.hidden = !visible;
+                if (visible) shown++;
+            });
+            document.querySelectorAll('.contact-section').forEach(function (section) {
+                section.hidden = !section.querySelector('.contact:not([hidden])');
+            });
+            document.getElementById('usersEmpty').hidden = shown > 0;
+        }
+
+        // Counts follow the scrapers: refresh them while the page is open
+        function refreshCounts() {
+            if (document.hidden) return;
+            fetch('/api/users/stats', {headers: {'X-Requested-With': 'fetch'}, cache: 'no-store'})
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (stats) {
+                    if (!stats) return;
+                    document.querySelectorAll('[data-user-summary]').forEach(function (el) {
+                        const text = stats[el.dataset.userSummary];
+                        if (text && el.textContent !== text) el.textContent = text;
+                    });
+                })
+                .catch(function () {});
+        }
+        setInterval(refreshCounts, 10000);
+        document.addEventListener('visibilitychange', refreshCounts);
+
+        search.addEventListener('input', apply);
+        filterBar.addEventListener('click', function (e) {
+            const button = e.target.closest('.seg');
+            if (!button) return;
+            filterBar.querySelectorAll('.seg').forEach(function (b) { b.classList.toggle('active', b === button); });
+            kind = button.dataset.filter;
+            apply();
+        });
+    });
+</script>
+{% endblock %}

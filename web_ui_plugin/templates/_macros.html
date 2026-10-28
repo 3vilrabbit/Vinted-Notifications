@@ -1,0 +1,51 @@
+{% macro theme_switch(labels=False) %}
+<div class="theme-switch {% if labels %}with-labels{% endif %}" role="group" aria-label="{{ _('Appearance') }}">
+    <button type="button" data-theme-set="system" title="{{ _('System') }}" aria-label="{{ _('System') }}"><i class="bi bi-circle-half"></i>{% if labels %}<span>{{ _("System") }}</span>{% endif %}</button>
+    <button type="button" data-theme-set="light" title="{{ _('Light') }}" aria-label="{{ _('Light') }}"><i class="bi bi-sun"></i>{% if labels %}<span>{{ _("Light") }}</span>{% endif %}</button>
+    <button type="button" data-theme-set="dark" title="{{ _('Dark') }}" aria-label="{{ _('Dark') }}"><i class="bi bi-moon-stars"></i>{% if labels %}<span>{{ _("Dark") }}</span>{% endif %}</button>
+</div>
+{% endmacro %}
+
+{% macro server_status() %}
+<span class="srv-status" data-state="starting" role="status" aria-live="polite" title="{{ _('Server status') }}">
+    <i class="status-dot" aria-hidden="true"></i><span class="srv-label">{{ _("Server status") }}</span>
+</span>
+{% endmacro %}
+
+{% macro seller_info(item) -%}
+{%- if item.seller_login -%}
+<span class="seller-avatar">{{ item.seller_login[:1] }}</span>
+<span class="seller-name" title="{{ item.seller_login }}">{{ item.seller_login }}</span>
+{%- if item.seller_stars is not none %}
+<span class="rating"><i class="bi bi-star-fill"></i> {{ '%.1f'|format(item.seller_stars) }}
+    <small>({{ item.seller_reviews }})</small></span>
+{%- if item.seller_reviews < 5 %}<span class="flag-new" title="{{ _('Fewer than 5 reviews') }}">{{ _("new") }}</span>{% endif -%}
+{%- else %}
+<span class="rating"><small>{{ _("no rating") }}</small></span>
+{%- endif -%}
+{%- else -%}
+<span class="text-muted">{{ _("Seller unknown") }}</span>
+{%- endif -%}
+{%- endmacro %}
+
+{% macro deal_card(item) %}
+<article class="deal" data-id="{{ item.id }}" data-sheet-item="{{ item.id }}">
+    <a class="deal-photo" href="{{ item.url }}" target="_blank" rel="noopener" tabindex="-1" aria-hidden="true">
+        {% if item.photo_url %}<img src="{{ item.photo_url }}" alt="" loading="lazy">{% else %}<span class="ph"><i class="bi bi-image"></i></span>{% endif %}
+        <span class="deal-query">{{ item.query }}</span>
+        {% if item.deal_pct %}<span class="deal-flag" title="{{ _('Average for this query: %(avg)s', avg=item.avg_price ~ ' ' ~ item.currency) }}">{{ _('−%(n)s%% vs avg', n=item.deal_pct) }}</span>{% endif %}
+        <span class="price-tag">{{ item.price }} {{ item.currency }}</span>
+    </a>
+    <div class="deal-body">
+        <h3 class="deal-title" title="{{ item.title }}">{{ item.title }}</h3>
+        <div class="seller">{{ seller_info(item) }}</div>
+    </div>
+    <div class="deal-foot">
+        <span title="{{ _('When the scraper first saw this listing') }}"><i class="bi bi-clock me-1"></i><time class="local-ts" data-rel="1" data-ts="{{ item.ts }}">{{ item.timestamp }}</time></span>
+        <span class="deal-actions">
+            <button type="button" class="deal-del js-del-item" data-item-id="{{ item.id }}" aria-label="{{ _('Remove from my items') }}"><i class="bi bi-trash3"></i><span class="del-label">{{ _("Remove?") }}</span></button>
+            <a class="deal-open" href="{{ item.url }}" target="_blank" rel="noopener">{{ _("Open") }} <i class="bi bi-box-arrow-up-right"></i></a>
+        </span>
+    </div>
+</article>
+{% endmacro %}

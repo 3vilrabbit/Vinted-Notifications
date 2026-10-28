@@ -1,0 +1,88 @@
+{% from "_macros.html" import seller_info, deal_card %}
+
+<div class="results-head">
+    <h2 class="results-title">
+        {% if selected_query %}{{ selected_query_display if selected_query_display else _('Query %(id)s', id=selected_query) }}{% else %}{{ _("All items") }}{% endif %}
+        <span class="results-range" aria-live="polite">
+            {% if total %}{{ _("%(a)s–%(b)s of %(c)s", a=first_shown, b=last_shown, c=total) }}{% else %}{{ _("0 results") }}{% endif %}
+        </span>
+    </h2>
+    <div class="results-actions">
+        <div class="btn-group" role="group" aria-label="{{ _('View') }}">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="cardViewBtn"><i class="bi bi-grid-fill me-1"></i> {{ _("Cards") }}</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="listViewBtn"><i class="bi bi-list-ul me-1"></i> {{ _("List") }}</button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#clearModal">
+            <i class="bi bi-trash3 me-1"></i> {{ _("Clear results") }}
+        </button>
+    </div>
+</div>
+
+{% if not items %}
+<div class="empty">
+    <i class="bi bi-bag"></i>
+    {% if active_filters %}
+    <strong>{{ _("No items match these filters") }}</strong>
+    {{ _("Loosen a filter or") }} <a href="#" data-reset>{{ _("reset all filters") }}</a>.
+    {% else %}
+    <strong>{{ _("No items yet") }}</strong>
+    {{ _("New listings appear here as soon as one of your queries matches them.") }}
+    {% endif %}
+</div>
+{% else %}
+
+<!-- Card view -->
+<div class="deal-grid" id="cardView">
+    {% for item in items %}{{ deal_card(item) }}{% endfor %}
+</div>
+
+<!-- List view -->
+<div class="card" id="listView" style="display: none;">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 items-table">
+            <thead>
+            <tr>
+                <th></th>
+                <th>{{ _("Title") }}</th>
+                <th>{{ _("Price") }}</th>
+                <th>{{ _("Seller") }}</th>
+                <th>{{ _("Query") }}</th>
+                <th title="{{ _('When the scraper first saw the listing') }}">{{ _("First seen") }}</th>
+                <th></th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for item in items %}
+            <tr data-id="{{ item.id }}" data-sheet-item="{{ item.id }}" class="row-sheet">
+                <td style="width: 3.5rem;">
+                    {% if item.photo_url %}
+                    <img src="{{ item.photo_url }}" alt="" class="img-thumbnail" loading="lazy" style="width: 2.75rem; height: 2.75rem; object-fit: cover;">
+                    {% else %}
+                    <div class="bg-light d-flex align-items-center justify-content-center rounded" style="width: 2.75rem; height: 2.75rem;"><i class="bi bi-image text-muted"></i></div>
+                    {% endif %}
+                </td>
+                <td style="min-width: 12rem;">{{ item.title }}</td>
+                <td class="text-nowrap"><span class="price-chip">{{ item.price }} {{ item.currency }}</span>{% if item.deal_pct %} <span class="deal-pill" title="{{ _('Average for this query: %(avg)s', avg=item.avg_price ~ ' ' ~ item.currency) }}">&minus;{{ item.deal_pct }}%</span>{% endif %}</td>
+                <td><div class="seller">{{ seller_info(item) }}</div></td>
+                <td>{{ item.query|truncate(28) }}</td>
+                <td class="text-nowrap"><time class="local-ts" data-ts="{{ item.ts }}">{{ item.timestamp }}</time></td>
+                <td class="text-end text-nowrap"><span class="deal-actions"><button type="button" class="deal-del js-del-item" data-item-id="{{ item.id }}" aria-label="{{ _('Remove from my items') }}"><i class="bi bi-trash3"></i><span class="del-label">{{ _("Remove?") }}</span></button>
+                    <a href="{{ item.url }}" target="_blank" rel="noopener" class="deal-open">{{ _("Open") }} <i class="bi bi-box-arrow-up-right"></i></a></span></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if pages > 1 %}
+<nav class="pager" aria-label="{{ _('Pages') }}">
+    <button type="button" data-page="{{ page - 1 }}" {% if page <= 1 %}disabled{% endif %} aria-label="{{ _('Previous page') }}"><i class="bi bi-chevron-left"></i></button>
+    {% for n in page_window %}
+    {% if n is none %}<span class="gap">&hellip;</span>
+    {% else %}<button type="button" data-page="{{ n }}" class="{{ 'active' if n == page }}" {% if n == page %}aria-current="page"{% endif %}>{{ n }}</button>{% endif %}
+    {% endfor %}
+    <button type="button" data-page="{{ page + 1 }}" {% if page >= pages %}disabled{% endif %} aria-label="{{ _('Next page') }}"><i class="bi bi-chevron-right"></i></button>
+</nav>
+{% endif %}
+{% endif %}

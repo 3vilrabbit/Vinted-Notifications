@@ -1,220 +1,189 @@
 {% extends "base.html" %}
 
-{% block title %}Queries - Vinted Notifications{% endblock %}
+{% block title %}{{ _("Queries - Vinted Notifications") }}{% endblock %}
+
+{% macro query_fields(p, q) %}
+<div class="ios-group">
+    <label class="ios-row stack" for="query{{ p }}"><span class="ios-label">{{ _("Vinted search URL") }}</span>
+        <input type="url" inputmode="url" class="ios-input ios-input-wide" id="query{{ p }}" name="query" value="{{ q.query if q else '' }}" required autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="https://www.vinted.fr/catalog?search_text=nike+shoes"></label>
+</div>
+<p class="ios-foot">{{ _("Run the search on Vinted with your filters, then paste the page address here.") }}</p>
+<div class="ios-group">
+    <label class="ios-row" for="query_name{{ p }}"><span class="ios-label">{{ _("Name") }}</span>
+        <input type="text" class="ios-input" id="query_name{{ p }}" name="query_name" value="{{ q.name if q else '' }}" placeholder="{{ _('Optional') }}"></label>
+    <label class="ios-row" for="max_price{{ p }}"><span class="ios-label">{{ _("Max price") }}</span>
+        <input type="number" inputmode="decimal" class="ios-input" id="max_price{{ p }}" name="max_price" min="0" step="any" value="{{ q.max_price if q else '' }}" placeholder="{{ _('No limit') }}"></label>
+    <label class="ios-row" for="min_stars{{ p }}"><span class="ios-label">{{ _("Min seller stars") }}</span>
+        <input type="number" inputmode="decimal" class="ios-input" id="min_stars{{ p }}" name="min_stars" min="0" max="5" step="0.1" value="{{ q.min_stars if q else '' }}" placeholder="{{ _('Any') }}"></label>
+    <label class="ios-row" for="min_reviews{{ p }}"><span class="ios-label">{{ _("Min seller reviews") }}</span>
+        <input type="number" inputmode="numeric" class="ios-input" id="min_reviews{{ p }}" name="min_reviews" min="0" step="1" value="{{ q.min_reviews if q else '' }}" placeholder="{{ _('Any') }}"></label>
+</div>
+<p class="ios-foot">{{ _("Listings above the max price, or from sellers below the stars/reviews you set, are skipped before they reach you.") }}</p>
+<div class="ios-group">
+    <div class="ios-row">
+        <label class="ios-label" for="push{{ p }}">{{ _("Push notifications for this query") }}<span class="ios-sub">{{ _("Push messages reach the devices where you turned notifications on in Settings.") }}</span></label>
+        <span class="form-check form-switch"><input class="form-check-input" type="checkbox" role="switch" id="push{{ p }}" name="push" {% if (q and q.push) or not q %}checked{% endif %}></span>
+    </div>
+</div>
+{% endmacro %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Queries</h1>
+<div class="d-flex justify-content-between flex-wrap align-items-center gap-2">
+    <h1 class="h2">{{ _("Queries") }}</h1>
 </div>
 
-<div class="row mb-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex align-items-center">
-                <i class="bi bi-plus-circle me-2 text-info"></i>
-                <h5 class="card-title mb-0">Add New Query</h5>
+<div class="ios-group new-account">
+    <button type="button" class="ios-row ios-link ios-btn-row" data-bs-toggle="modal" data-bs-target="#newQuerySheet">
+        <span class="ios-label"><span class="row-ico" style="--c: #34C759"><i class="bi bi-plus-lg"></i></span>{{ _("New query") }}</span><i class="bi bi-chevron-right chev"></i>
+    </button>
+</div>
+
+<!-- New query -->
+<div class="modal fade sheet" id="newQuerySheet" tabindex="-1" aria-labelledby="newQueryLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <form class="modal-content" action="/add_query" method="post">
+            <div class="sheet-grabber" aria-hidden="true"></div>
+            <div class="sheet-bar">
+                <button type="button" class="sheet-action" data-bs-dismiss="modal">{{ _("Cancel") }}</button>
+                <h2 class="sheet-title" id="newQueryLabel">{{ _("New query") }}</h2>
+                <span></span>
             </div>
-            <div class="card-body">
-                <form action="/add_query" method="post">
-                    <div class="row g-3">
+            <div class="sheet-body">
+                {{ query_fields('_new', none) }}
+                <button type="submit" class="btn btn-primary btn-lg sheet-submit"><i class="bi bi-plus-lg"></i> {{ _("Add query") }}</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-                        <!-- Vinted URL (required) -->
-                        <div class="col-md-7">
-                            <label for="query" class="form-label">Vinted search URL <span
-                                    class="text-danger">*</span></label>
-                            <input type="url"
-                                   class="form-control"
-                                   id="query"
-                                   name="query"
-                                   placeholder="https://www.vinted.fr/catalog?search_text=nike+shoes"
-                                   required
-                                   pattern="^https?:\/\/(?:www\.)?vinted\.[a-z]{2,}(?:\.[a-z]{2,})*(\/.*)?$">
-                            <div class="form-text">
-                                Paste a valid Vinted search URL (e.g.&nbsp;`https://www.vinted.fr/catalog?...`)
-                            </div>
-                        </div>
+<div class="qlist">
+    {% for query in queries %}
+    <article class="qcard">
+        <header class="q-head">
+            <div class="q-title">
+                <h2 class="qname">{{ query.display }}</h2>
+                <a class="qurl" href="{{ query.query }}" target="_blank" rel="noopener" title="{{ query.query }}"><i class="bi bi-box-arrow-up-right"></i> <span>{{ query.host }}{% if query.terms %} &middot; {{ query.terms }}{% endif %}</span></a>
+            </div>
+            <div class="q-tools">
+                <button type="button" class="q-tool" data-bs-toggle="modal" data-bs-target="#editModal{{ query.id }}" aria-label="{{ _('Edit') }}"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="q-tool q-tool-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ query.id }}" aria-label="{{ _('Remove %(name)s', name=query.display) }}"><i class="bi bi-trash3"></i></button>
+            </div>
+        </header>
+        <div class="qchips">
+            {% if query.max_price %}<span class="chip"><i class="bi bi-tag"></i> {{ _("up to %(price)s", price=query.max_price) }}</span>{% endif %}
+            {% if query.min_stars %}<span class="chip"><i class="bi bi-star-fill"></i> {{ _("%(n)s+ stars", n=query.min_stars) }}</span>{% endif %}
+            {% if query.min_reviews %}<span class="chip"><i class="bi bi-chat-square-text"></i> {{ _("%(n)s+ reviews", n=query.min_reviews) }}</span>{% endif %}
+            {% if query.push %}<span class="chip"><i class="bi bi-bell-fill"></i> {{ _("Push") }}</span>{% endif %}
+            {% if not (query.max_price or query.min_stars or query.min_reviews or query.push) %}<span class="chip chip-empty">{{ _("No filters") }}</span>{% endif %}
+        </div>
+        <dl class="qstats">
+            <div><dt>{{ _("Items") }}</dt><dd>{{ query.item_count }}</dd></div>
+            <div><dt>{{ _("Average price") }}</dt><dd>{{ query.avg_price if query.avg_price else '-' }}</dd></div>
+            <div><dt>{{ _("Last found") }}</dt><dd>{% if query.last_ts %}<time class="local-ts" data-rel="1" data-ts="{{ query.last_ts }}">{{ query.last_found_item }}</time>{% else %}{{ _("Never") }}{% endif %}</dd></div>
+        </dl>
+        <a href="/items?query={{ query.query_id }}" class="btn btn-primary q-items"><i class="bi bi-bag"></i> {{ _("See items") }}</a>
 
-                        <!-- Name (optional) -->
-                        <div class="col-md-3">
-                            <label for="query_name" class="form-label">Name&nbsp;<span
-                                    class="text-muted">(optional)</span></label>
-                            <input type="text"
-                                   class="form-control"
-                                   id="query_name"
-                                   name="query_name"
-                                   placeholder="My search">
-                        </div>
-
-                        <div class="col-md-2 d-flex align-items-center">
-                            <button type="submit" class="btn btn-primary w-100">Add Query</button>
-                        </div>
+        <!-- Edit sheet -->
+        <div class="modal fade sheet" id="editModal{{ query.id }}" tabindex="-1" aria-labelledby="editModalLabel{{ query.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+                <form class="modal-content" action="/update_query/{{ query.query_id }}" method="post">
+                    <div class="sheet-grabber" aria-hidden="true"></div>
+                    <div class="sheet-bar">
+                        <button type="button" class="sheet-action" data-bs-dismiss="modal">{{ _("Cancel") }}</button>
+                        <h2 class="sheet-title" id="editModalLabel{{ query.id }}">{{ _("Edit query") }}</h2>
+                        <span></span>
                     </div>
+                    <div class="sheet-body">
+                        {{ query_fields(query.id, query) }}
+                        <button type="submit" class="btn btn-primary btn-lg sheet-submit">{{ _("Save changes") }}</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Delete modal -->
+        <div class="modal fade" id="deleteModal{{ query.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ query.id }}" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="deleteModalLabel{{ query.id }}">{{ _("Remove query") }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+                    </div>
+                    <div class="modal-body">
+                        {{ _("Remove %(name)s and the %(items)s it collected?", name=("<strong>"|safe ~ query.display ~ "</strong>"|safe), items=_n("%(n)s item", "%(n)s items", query.item_count)) }}
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _("Cancel") }}</button>
+                        <form action="/remove_query/{{ query.query_id }}" method="post" class="d-inline">
+                            <button type="submit" class="btn btn-danger">{{ _("Remove query") }}</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </article>
+    {% else %}
+    <div class="empty panel">
+        <i class="bi bi-search"></i>
+        <strong>{{ _("No queries yet") }}</strong>
+        {{ _("Paste a Vinted search URL above and new listings will start showing up here.") }}
+    </div>
+    {% endfor %}
+</div>
+
+{% if queries %}
+<div class="ios-group danger-group">
+    <button type="button" class="ios-row ios-btn-row ios-danger" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
+        <span class="ios-label"><span class="row-ico" style="--c: #FF3B30"><i class="bi bi-trash3"></i></span>{{ _("Remove all queries") }}</span>
+    </button>
+</div>
+<div class="modal fade" id="deleteAllModal" tabindex="-1" aria-labelledby="deleteAllModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAllModalLabel">{{ _("Remove all queries") }}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ _('Close') }}"></button>
+            </div>
+            <div class="modal-body">{{ _("This removes every query and all collected items. It cannot be undone.") }}</div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ _("Cancel") }}</button>
+                <form action="/remove_query/all" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-danger">{{ _("Remove everything") }}</button>
                 </form>
             </div>
         </div>
     </div>
 </div>
+{% endif %}
+{% endblock %}
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex align-items-center">
-                <i class="bi bi-search me-2 text-info"></i>
-                <h5 class="card-title mb-0">Current Queries</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Query</th>
-                            <th>Last Found Item</th>
-                            <th>Actions</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        {% for query in queries %}
-                        <tr>
-                            <td>{{ query.id }}</td>
-                            <td>{{ query.display }}</td>
-                            <td>{{ query.last_found_item }}</td>
-                            <td>
-                                <div class="btn-group" role="group">
-                                    <a href="/items?query={{ query.query_id }}"
-                                       class="btn btn-sm btn-outline-primary">
-                                        <i class="bi bi-box"></i> View Items
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editModal{{ query.id }}">
-                                        <i class="bi bi-pencil"></i> Edit
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" data-bs-toggle="modal"
-                                            data-bs-target="#deleteModal{{ query.id }}">
-                                        <i class="bi bi-trash"></i> Remove
-                                    </button>
-                                </div>
-
-                                <!-- Edit Modal -->
-                                <div class="modal fade" id="editModal{{ query.id }}" tabindex="-1"
-                                     aria-labelledby="editModalLabel{{ query.id }}" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="editModalLabel{{ query.id }}">Edit
-                                                    Query</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                        aria-label="Close"></button>
-                                            </div>
-                                            <form action="/update_query/{{ query.query_id }}" method="post">
-                                                <div class="modal-body">
-                                                    <div class="mb-3">
-                                                        <label for="query{{ query.id }}" class="form-label">Vinted
-                                                            search URL <span class="text-danger">*</span></label>
-                                                        <input type="url"
-                                                               class="form-control"
-                                                               id="query{{ query.id }}"
-                                                               name="query"
-                                                               value="{{ query.query }}"
-                                                               placeholder="https://www.vinted.fr/catalog?search_text=nike+shoes"
-                                                               required
-                                                               pattern="^https?:\/\/(?:www\.)?vinted\.[a-z]{2,}(?:\.[a-z]{2,})*(\/.*)?$">
-                                                    </div>
-                                                    <div class="mb-3">
-                                                        <label for="query_name{{ query.id }}" class="form-label">Name
-                                                            <span class="text-danger">*</span></label>
-                                                        <input type="text"
-                                                               class="form-control"
-                                                               id="query_name{{ query.id }}"
-                                                               name="query_name"
-                                                               value="{{ query.display if query.display != query.query else '' }}"
-                                                               required
-                                                               placeholder="My search">
-                                                    </div>
-                                                </div>
-                                                <div class="modal-footer">
-                                                    <button type="button" class="btn btn-secondary"
-                                                            data-bs-dismiss="modal">
-                                                        Cancel
-                                                    </button>
-                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Delete Modal -->
-                                <div class="modal fade" id="deleteModal{{ query.id }}" tabindex="-1"
-                                     aria-labelledby="deleteModalLabel{{ query.id }}" aria-hidden="true">
-                                    <div class="modal-dialog">
-                                        <div class="modal-content">
-                                            <div class="modal-header">
-                                                <h5 class="modal-title" id="deleteModalLabel{{ query.id }}">Confirm
-                                                    Deletion</h5>
-                                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                                        aria-label="Close"></button>
-                                            </div>
-                                            <div class="modal-body">
-                                                Are you sure you want to remove the query: <strong>{{ query.display
-                                                }}</strong>?
-                                            </div>
-                                            <div class="modal-footer">
-                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                                                    Cancel
-                                                </button>
-                                                <form action="/remove_query/{{ query.query_id }}" method="post"
-                                                      class="d-inline">
-                                                    <button type="submit" class="btn btn-danger">Remove</button>
-                                                </form>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-                        </tr>
-                        {% else %}
-                        <tr>
-                            <td colspan="4" class="text-center">No queries found</td>
-                        </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            {% if queries %}
-            <div class="card-footer">
-                <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteAllModal">
-                    <i class="bi bi-trash"></i> Remove All Queries
-                </button>
-
-                <!-- Delete All Modal -->
-                <div class="modal fade" id="deleteAllModal" tabindex="-1" aria-labelledby="deleteAllModalLabel"
-                     aria-hidden="true">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title" id="deleteAllModalLabel">Confirm Deletion</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                        aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                Are you sure you want to remove <strong>ALL</strong> queries? This action cannot be
-                                undone.
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <form action="/remove_query/all" method="post" class="d-inline">
-                                    <button type="submit" class="btn btn-danger">Remove All</button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
+{% block scripts %}
+<script>
+    // Choosing push for a query only works on devices that agreed to receive it: ask right away.
+    // The permission prompt has to come straight from the tap, so it is requested before anything else happens.
+    document.addEventListener('click', function (event) {
+        const input = event.target.closest && event.target.closest('input[name="push"]');
+        if (!input || !input.checked || !window.vnPush) return;
+        const holder = input.closest('.ios-group');
+        let hint = holder.parentNode.querySelector('.push-hint');
+        if (!hint) {
+            hint = document.createElement('p');
+            hint.className = 'ios-foot push-hint';
+            holder.insertAdjacentElement('afterend', hint);
+        }
+        function say(text) { hint.textContent = text; }
+        if (!vnPush.supported) {
+            vnPush.state().then(function (state) {
+                say(state === 'ios-install' ? vnT('Add the app to the Home Screen to receive notifications on this iPhone or iPad.') : vnT('This browser cannot receive push notifications.'));
+            });
+            return;
+        }
+        if (Notification.permission === 'denied') { say(vnT('Blocked in the browser settings for this site.')); return; }
+        // 'default' shows the system prompt; 'granted' just makes sure this device is registered
+        vnPush.enable().then(function () { say(vnT('Notifications are now on for this device.')); })
+            .catch(function (e) {
+                say((e && e.code === 'denied') ? vnT('Blocked in the browser settings for this site.') : vnT('Could not turn on notifications: %(e)s', {e: (e && e.message) || e}));
+            });
+    });
+</script>
 {% endblock %}

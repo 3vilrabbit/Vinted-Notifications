@@ -1,227 +1,162 @@
 {% extends "base.html" %}
 
-{% block title %}Logs - Vinted Notifications{% endblock %}
-
-{% block head %}
-<style>
-    .log-entry {
-        font-family: monospace;
-        white-space: pre-wrap;
-        word-wrap: break-word;
-    }
-
-    .log-info {
-        color: #0d6efd;
-    }
-
-    .log-warning {
-        color: #ffc107;
-    }
-
-    .log-error {
-        color: #dc3545;
-    }
-
-    .log-debug {
-        color: #6c757d;
-    }
-
-    .log-critical {
-        color: #721c24;
-        font-weight: bold;
-    }
-</style>
-{% endblock %}
+{% block title %}{{ _("Logs - Vinted Notifications") }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Logs</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <div class="btn-group me-2">
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="refreshBtn">
-                <i class="bi bi-arrow-clockwise me-1"></i> Refresh Now
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="toggleAutoRefreshBtn" data-state="on">
-                <i class="bi bi-play-circle me-1"></i> Auto-Refresh: ON
-            </button>
+<div class="d-flex justify-content-between flex-wrap align-items-center">
+    <h1 class="h2">{{ _("Logs") }}</h1>
+</div>
+
+<div class="log-toolbar glass-card">
+    <div class="log-search">
+        <i class="bi bi-search"></i>
+        <input type="search" class="form-control" id="logSearch" placeholder="{{ _('Search the log') }}" aria-label="{{ _('Search the log') }}" autocomplete="off">
+    </div>
+    <div class="log-actions">
+        <div class="form-check form-switch" title="{{ _('Reload every 5 seconds') }}">
+            <input class="form-check-input" type="checkbox" id="logLive" checked>
+            <label class="form-check-label" for="logLive">{{ _("Live") }}</label>
         </div>
-        <div class="btn-group">
-            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown"
-                    aria-expanded="false">
-                <i class="bi bi-filter me-1"></i> Log Level
-            </button>
-            <ul class="dropdown-menu">
-                <li><a class="dropdown-item log-level-filter active" href="#" data-level="all">All Levels</a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item log-level-filter" href="#" data-level="DEBUG">Debug</a></li>
-                <li><a class="dropdown-item log-level-filter" href="#" data-level="INFO">Info</a></li>
-                <li><a class="dropdown-item log-level-filter" href="#" data-level="WARNING">Warning</a></li>
-                <li><a class="dropdown-item log-level-filter" href="#" data-level="ERROR">Error</a></li>
-                <li><a class="dropdown-item log-level-filter" href="#" data-level="CRITICAL">Critical</a></li>
-            </ul>
-        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="logRefresh" aria-label="{{ _('Refresh now') }}"><i class="bi bi-arrow-clockwise"></i></button>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <div class="d-flex align-items-center">
-                    <i class="bi bi-journal-text me-2 text-info"></i>
-                    <h5 class="card-title mb-0">Log Entries</h5>
-                </div>
-                <span class="badge bg-secondary" id="logCount">0 entries</span>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
-                        <tr>
-                            <th style="width: 180px;">Timestamp</th>
-                            <th style="width: 100px;">Level</th>
-                            <th style="width: 150px;">Module</th>
-                            <th>Message</th>
-                        </tr>
-                        </thead>
-                        <tbody id="logEntries">
-                        <tr>
-                            <td colspan="4" class="text-center py-4">Loading logs...</td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="card-footer d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-muted">Log file: logs/vinted.log</span>
-                </div>
-                <div>
-                    <button class="btn btn-sm btn-outline-primary" id="loadMoreBtn">
-                        <i class="bi bi-arrow-down-circle me-1"></i> Load More
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+<div class="segmented log-levels" id="logLevels" role="tablist" aria-label="{{ _('Level') }}">
+    <button type="button" class="seg active" data-level="all" role="tab" aria-selected="true">{{ _("All Levels") }}</button>
+    {% for level in levels %}
+    <button type="button" class="seg" data-level="{{ level }}" role="tab" aria-selected="false">{{ level|title }}<span class="seg-count" data-count="{{ level }}"></span></button>
+    {% endfor %}
+</div>
+
+<div class="log-meta" id="logMeta" aria-live="polite">{{ _("Loading logs...") }}</div>
+<div class="log-list glass-card" id="logList"></div>
+
+<div class="text-center mt-3">
+    <button type="button" class="btn btn-outline-secondary" id="logMore" hidden><i class="bi bi-arrow-down-circle me-1"></i> {{ _("Load More") }}</button>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        const logEntries = document.getElementById('logEntries');
-        const logCount = document.getElementById('logCount');
-        const refreshBtn = document.getElementById('refreshBtn');
-        const toggleAutoRefreshBtn = document.getElementById('toggleAutoRefreshBtn');
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        const logLevelFilters = document.querySelectorAll('.log-level-filter');
+        const PAGE = 50;
+        const list = document.getElementById('logList');
+        const meta = document.getElementById('logMeta');
+        const moreBtn = document.getElementById('logMore');
+        const search = document.getElementById('logSearch');
+        const live = document.getElementById('logLive');
+        let level = 'all';
+        let loaded = 0;          // how many rows are on screen
+        let total = 0;
+        let timer = null;
+        let controller = null;
 
-        let autoRefreshInterval;
-        let currentLogLevel = 'all';
-        let currentOffset = 0;
-        const limit = 100;
-
-        // Function to fetch logs
-        function fetchLogs(offset = 0, append = false) {
-            fetch(`/api/logs?offset=${offset}&limit=${limit}&level=${currentLogLevel}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (!append) {
-                        logEntries.innerHTML = '';
-                        currentOffset = 0;
-                    }
-
-                    if (data.logs.length === 0) {
-                        if (!append) {
-                            logEntries.innerHTML = '<tr><td colspan="4" class="text-center py-4">No log entries found</td></tr>';
-                        }
-                        loadMoreBtn.disabled = true;
-                    } else {
-                        loadMoreBtn.disabled = false;
-
-                        data.logs.forEach(log => {
-                            const row = document.createElement('tr');
-
-                            // Add CSS class based on log level
-                            if (log.level === 'ERROR' || log.level === 'CRITICAL') {
-                                row.classList.add('table-danger');
-                            } else if (log.level === 'WARNING') {
-                                row.classList.add('table-warning');
-                            }
-
-                            row.innerHTML = `
-                                <td>${log.timestamp}</td>
-                                <td><span class="badge log-${log.level.toLowerCase()}">${log.level}</span></td>
-                                <td>${log.module}</td>
-                                <td class="log-entry">${log.message}</td>
-                            `;
-                            logEntries.appendChild(row);
-                        });
-
-                        if (!append) {
-                            logCount.textContent = `${data.total} entries`;
-                        }
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching logs:', error);
-                    logEntries.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-danger">Error loading logs</td></tr>';
-                });
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
         }
 
-        // Initial load
-        fetchLogs();
-
-        // Set up auto-refresh (every 5 seconds)
-        autoRefreshInterval = setInterval(() => {
-            fetchLogs();
-        }, 5000);
-
-        // Manual refresh button
-        refreshBtn.addEventListener('click', () => {
-            fetchLogs();
-        });
-
-        // Toggle auto-refresh
-        toggleAutoRefreshBtn.addEventListener('click', () => {
-            const currentState = toggleAutoRefreshBtn.getAttribute('data-state');
-
-            if (currentState === 'on') {
-                clearInterval(autoRefreshInterval);
-                toggleAutoRefreshBtn.setAttribute('data-state', 'off');
-                toggleAutoRefreshBtn.innerHTML = '<i class="bi bi-pause-circle me-1"></i> Auto-Refresh: OFF';
-            } else {
-                autoRefreshInterval = setInterval(() => {
-                    fetchLogs();
-                }, 5000);
-                toggleAutoRefreshBtn.setAttribute('data-state', 'on');
-                toggleAutoRefreshBtn.innerHTML = '<i class="bi bi-play-circle me-1"></i> Auto-Refresh: ON';
+        function row(entry) {
+            const item = el('article', 'log-row level-' + entry.level.toLowerCase());
+            const head = el('div', 'log-head');
+            head.appendChild(el('span', 'log-level', entry.level));
+            const time = el('time', 'log-time', entry.timestamp.slice(11));
+            time.title = entry.timestamp;
+            head.appendChild(time);
+            head.appendChild(el('span', 'log-date', entry.timestamp.slice(0, 10)));
+            head.appendChild(el('span', 'log-module', entry.module));
+            item.appendChild(head);
+            const lines = entry.message.split('\n');
+            const message = el('pre', 'log-message', entry.message);
+            item.appendChild(message);
+            // Long messages and tracebacks are folded until tapped
+            if (lines.length > 3 || entry.message.length > 240) {
+                message.classList.add('folded');
+                item.classList.add('foldable');
+                item.addEventListener('click', function () {
+                    if (window.getSelection().toString()) return;
+                    item.classList.toggle('open');
+                });
             }
-        });
+            return item;
+        }
 
-        // Load more logs
-        loadMoreBtn.addEventListener('click', () => {
-            currentOffset += limit;
-            fetchLogs(currentOffset, true);
-        });
+        // Fetch `count` rows from the start (used for the first load, filters and live updates)
+        async function load(count, append) {
+            if (controller) controller.abort();
+            controller = new AbortController();
+            const offset = append ? loaded : 0;
+            const params = new URLSearchParams({level: level, offset: offset, limit: count, q: search.value.trim()});
+            try {
+                const response = await fetch('/api/logs?' + params, {signal: controller.signal, headers: {'X-Requested-With': 'fetch'}});
+                if (response.status === 401) { location.reload(); return; }
+                const data = await response.json();
+                if (!append) {
+                    const scroll = window.scrollY;
+                    const open = new Set(Array.from(list.querySelectorAll('.log-row.open')).map(function (r) { return r.dataset.key; }));
+                    list.replaceChildren();
+                    loaded = 0;
+                    data.logs.forEach(function (entry) {
+                        const r = row(entry);
+                        r.dataset.key = entry.timestamp + entry.module + entry.message.slice(0, 40);
+                        if (open.has(r.dataset.key)) r.classList.add('open');
+                        list.appendChild(r);
+                    });
+                    window.scrollTo(0, scroll);
+                } else {
+                    data.logs.forEach(function (entry) {
+                        const r = row(entry);
+                        r.dataset.key = entry.timestamp + entry.module + entry.message.slice(0, 40);
+                        list.appendChild(r);
+                    });
+                }
+                loaded += data.logs.length;
+                total = data.total;
+                moreBtn.hidden = !data.has_more;
+                if (!loaded) {
+                    list.appendChild(el('div', 'empty', vnT('No log entries found')));
+                }
+                meta.textContent = total ? vnT('%(a)s–%(b)s of %(c)s', {a: 1, b: loaded, c: total}) : '';
+                const counts = data.counts || {};
+                document.querySelectorAll('[data-count]').forEach(function (badge) {
+                    badge.textContent = counts[badge.dataset.count] || '';
+                });
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                meta.textContent = vnT('Error loading logs');
+            }
+        }
 
-        // Log level filtering
-        logLevelFilters.forEach(filter => {
-            filter.addEventListener('click', (e) => {
-                e.preventDefault();
+        function schedule() {
+            clearInterval(timer);
+            if (live.checked) timer = setInterval(function () {
+                if (!document.hidden) load(Math.max(PAGE, loaded), false);
+            }, 5000);
+        }
 
-                // Update active state
-                logLevelFilters.forEach(f => f.classList.remove('active'));
-                filter.classList.add('active');
-
-                // Update current log level and fetch logs
-                currentLogLevel = filter.getAttribute('data-level');
-                fetchLogs();
+        document.getElementById('logLevels').addEventListener('click', function (e) {
+            const button = e.target.closest('.seg');
+            if (!button) return;
+            document.querySelectorAll('#logLevels .seg').forEach(function (b) {
+                b.classList.toggle('active', b === button);
+                b.setAttribute('aria-selected', b === button ? 'true' : 'false');
             });
+            level = button.dataset.level;
+            load(PAGE, false);
         });
+        let debounce = null;
+        search.addEventListener('input', function () {
+            clearTimeout(debounce);
+            debounce = setTimeout(function () { load(PAGE, false); }, 300);
+        });
+        moreBtn.addEventListener('click', function () { load(PAGE, true); });
+        document.getElementById('logRefresh').addEventListener('click', function () { load(Math.max(PAGE, loaded), false); });
+        live.addEventListener('change', schedule);
+
+        load(PAGE, false);
+        schedule();
     });
 </script>
 {% endblock %}

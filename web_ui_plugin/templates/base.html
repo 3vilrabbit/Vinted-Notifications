@@ -1,218 +1,128 @@
-<!DOCTYPE html>
-<html lang="en">
+{% from "_macros.html" import theme_switch, server_status %}<!DOCTYPE html>
+<html lang="{{ lang }}">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <meta name="color-scheme" content="light dark">
+    <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
     <title>{% block title %}Vinted Notifications{% endblock %}</title>
+
+    <!-- Progressive web app -->
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Vinted">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='icons/favicon-32.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
-    <style>
-        html, body {
-            height: 100%;
-        }
-
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-
-        .container-fluid {
-            flex: 1 0 auto;
-        }
-
-        /* Header styling */
-        .navbar-brand {
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            font-size: 1.25rem;
-            padding: 0.75rem 1rem;
-        }
-
-        .app-header {
-            background-color: #09B1BA;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .header-btn {
-            border-radius: 20px;
-            padding: 0.375rem 1rem;
-            transition: all 0.3s ease;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-
-        .header-btn:hover {
-            background-color: rgba(255, 255, 255, 0.2);
-            border-color: rgba(255, 255, 255, 0.5);
-        }
-
-        .version-info {
-            padding: 0.375rem 0.75rem;
-            border-radius: 15px;
-            background-color: rgba(0, 0, 0, 0.2);
-            margin-right: 1rem;
-        }
-
-        /* Sidebar styling */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            z-index: 100;
-            padding: 60px 0 0;
-            box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1);
-            height: auto;
-        }
-
-        .sidebar-sticky {
-            position: relative;
-            top: 0;
-            height: calc(100vh - 60px);
-            padding-top: .5rem;
-            overflow-x: hidden;
-            overflow-y: auto;
-        }
-
-        .nav-link {
-            font-weight: 500;
-            color: #333;
-            padding: 0.5rem 1rem;
-            margin: 0.2rem 0;
-            border-radius: 0.25rem;
-            transition: all 0.2s ease;
-        }
-
-        .nav-link:hover {
-            background-color: rgba(0, 0, 0, 0.05);
-        }
-
-        .nav-link.active {
-            color: #fff;
-            background-color: #09B1BA;
-            border-radius: 0.5rem;
-        }
-
-        main {
-            padding-top: 1.5rem;
-            padding-bottom: 2rem;
-        }
-
-        .flash-messages {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1050;
-            max-width: 300px;
-        }
-
-        .flash-message {
-            margin-bottom: 10px;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .footer {
-            flex-shrink: 0;
-            border-top: 1px solid #dee2e6;
-            margin-top: auto;
-            position: relative;
-            z-index: 101;
-        }
-
-        /* Responsive footer adjustments */
-        @media (max-width: 767.98px) {
-            .footer .col-md-4 {
-                text-align: center !important;
-                margin-bottom: 0.5rem;
-            }
-
-            .footer .col-md-4:last-child {
-                margin-bottom: 0;
-            }
-
-            .sidebar {
-                bottom: auto;
-            }
-        }
-    </style>
+    <script src="{{ url_for('static', filename='js/pw-eye.js') }}" data-pw-show="{{ _('Show password') }}" data-pw-hide="{{ _('Hide password') }}" defer></script>
+    <script>
+        // iOS ignores user-scalable=no in places: stop pinch and double-tap zoom explicitly
+        ['gesturestart', 'gesturechange', 'gestureend'].forEach(function (name) {
+            document.addEventListener(name, function (e) { e.preventDefault(); });
+        });
+        let lastTouchEnd = 0;
+        document.addEventListener('touchend', function (e) {
+            const now = Date.now();
+            const field = e.target.closest && e.target.closest('input, textarea, select');
+            if (now - lastTouchEnd < 350 && !field) e.preventDefault();
+            lastTouchEnd = now;
+        }, {passive: false});
+    </script>
     {% block head %}{% endblock %}
 </head>
 <body>
-<header class="navbar navbar-dark sticky-top app-header flex-md-nowrap p-0 shadow">
-    <div class="container-fluid">
-        <a class="navbar-brand col-md-2 col-lg-2 me-0" href="/">
-            <i class="bi bi-bell-fill me-2"></i>Vinted Notifications
+{% set path = request.path %}
+<aside class="sidebar glass" id="sidebar">
+    <a class="sidebar-brand" href="/">
+        <img src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Vinted" width="34" height="34">
+        <span>Vinted<br>Notifications</span>
+    </a>
+    <nav class="sidebar-nav" aria-label="{{ _('Main') }}">
+        <a class="side-link {% if path == '/' %}active{% endif %}" href="/"><i class="bi bi-house-door"></i> {{ _("Dashboard") }}</a>
+        <a class="side-link {% if path == '/queries' %}active{% endif %}" href="/queries"><i class="bi bi-search"></i> {{ _("Queries") }}</a>
+        <a class="side-link {% if path.startswith('/items') %}active{% endif %}" href="/items"><i class="bi bi-bag"></i> {{ _("Items") }}</a>
+        <a class="side-link {% if path == '/allowlist' %}active{% endif %}" href="/allowlist"><i class="bi bi-globe2"></i> {{ _("Allowlist") }}</a>
+        <a class="side-link {% if path == '/config' %}active{% endif %}" href="/config"><i class="bi bi-gear"></i> {{ _("Configuration") }}</a>
+        {% if is_admin and accounts_enabled %}<a class="side-link {% if path.startswith('/users') %}active{% endif %}" href="/users"><i class="bi bi-people"></i> {{ _("Accounts") }}</a>{% endif %}
+        {% if is_admin %}<a class="side-link {% if path == '/logs' %}active{% endif %}" href="/logs"><i class="bi bi-terminal"></i> {{ _("Logs") }}</a>{% endif %}
+    </nav>
+    <div class="sidebar-theme">{{ server_status() }}{{ theme_switch() }}</div>
+    <div class="sidebar-foot">
+        <a class="side-account" href="/config#security" title="{{ _('Account') if accounts_enabled else _('Security') }}">
+            <span class="avatar">{{ (current_user.username[:1] if current_user and current_user.username else 'V')|upper }}</span>
+            <span class="side-account-text">
+                <strong>{{ current_user.username if current_user and current_user.username else 'Vinted' }}</strong>
+                <small>
+                    {% if accounts_enabled %}{{ _("Administrator") if is_admin else _("Member") }}
+                    {% elif is_up_to_date is defined and not is_up_to_date %}{{ _('Update %(v)s', v=latest_version) }}
+                    {% elif current_version is defined %}v{{ current_version }}{% endif %}
+                </small>
+            </span>
         </a>
-        <button class="navbar-toggler position-absolute d-md-none collapsed" type="button" data-bs-toggle="collapse"
-                data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-expanded="false"
-                aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="d-flex ms-auto me-3 align-items-center">
-            {% if github_url is defined %}
-            {% if is_up_to_date is defined %}
-            <span class="version-info text-light me-3 d-none d-md-flex align-items-center">
-                            {% if is_up_to_date %}
-                                <i class="bi bi-check-circle-fill text-success me-2"
-                                   style="text-shadow: 0 0 3px rgba(0,0,0,0.5);"></i> v{{ current_version }}
-                            {% else %}
-                                <i class="bi bi-exclamation-circle-fill text-warning me-2"></i> Update: {{ latest_version }}
-                            {% endif %}
-                        </span>
-            {% endif %}
-            <a href="{{ github_url }}" target="_blank" class="btn btn-outline-light btn-sm header-btn"
-               style="font-weight: bold; text-shadow: 0 0 3px rgba(0,0,0,0.3);">
-                <i class="bi bi-github me-1"></i> GitHub
-            </a>
-            {% endif %}
-        </div>
+        {% if auth_enabled %}
+        <form action="/logout" method="post"><button type="submit" class="icon-btn" title="{{ _('Log out') }}" aria-label="{{ _('Log out') }}"><i class="bi bi-box-arrow-right"></i></button></form>
+        {% endif %}
     </div>
-</header>
+</aside>
 
-<div class="container-fluid">
-    <div class="row">
-        <nav id="sidebarMenu" class="col-md-2 col-lg-2 d-md-block bg-white sidebar collapse">
-            <div class="sidebar-sticky pt-3">
-                <ul class="nav flex-column px-2">
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/' %}active{% endif %}" href="/">
-                            <i class="bi bi-speedometer2 me-2"></i> Dashboard
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/queries' %}active{% endif %}" href="/queries">
-                            <i class="bi bi-search me-2"></i> Queries
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/items' %}active{% endif %}" href="/items">
-                            <i class="bi bi-box me-2"></i> Items
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/allowlist' %}active{% endif %}" href="/allowlist">
-                            <i class="bi bi-globe me-2"></i> Allowlist
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/config' %}active{% endif %}" href="/config">
-                            <i class="bi bi-gear me-2"></i> Configuration
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.path == '/logs' %}active{% endif %}" href="/logs">
-                            <i class="bi bi-journal-text me-2"></i> Logs
-                        </a>
-                    </li>
-                </ul>
-            </div>
-        </nav>
+<div class="shell">
+    <main class="page">
+        {% block content %}{% endblock %}
+    </main>
 
-        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-            {% block content %}{% endblock %}
-        </main>
+</div>
+
+<!-- Scroll edge effects: keep the status bar and the tab bar legible over scrolling content -->
+<div class="edge edge-top" id="edgeTop" aria-hidden="true"></div>
+<div class="edge edge-bottom" aria-hidden="true"></div>
+
+<!-- Tab bar (phones and tablets) -->
+<nav class="tabbar glass" id="tabbar" aria-label="{{ _('Main') }}">
+    <a class="tab {% if path == '/' %}active{% endif %}" href="/"><i class="bi bi-house-door"></i><span>{{ _("Dashboard") }}</span></a>
+    <a class="tab {% if path.startswith('/items') %}active{% endif %}" href="/items"><i class="bi bi-bag"></i><span>{{ _("Items") }}</span></a>
+    <a class="tab {% if path == '/queries' %}active{% endif %}" href="/queries"><i class="bi bi-search"></i><span>{{ _("Queries") }}</span></a>
+    <a class="tab {% if path in ('/config', '/allowlist', '/logs') or path.startswith('/users') %}active{% endif %}" href="/config"><i class="bi bi-gear"></i><span>{{ _("Settings") }}</span></a>
+</nav>
+
+<!-- Listing card pop-up (Items page, dashboard) -->
+<div class="modal fade" id="itemSheet" tabindex="-1" aria-label="{{ _('Item') }}" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable lc-dialog">
+        <div class="modal-content lc-modal" id="itemSheetBody"></div>
+    </div>
+</div>
+
+<!-- Welcome screen: shown once when the installed app is opened for the first time -->
+<div class="welcome" id="welcome" hidden role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <div class="welcome-card">
+        <img class="welcome-logo" src="{{ url_for('static', filename='icons/icon-192.png') }}" alt="Vinted" width="84" height="84">
+        <h2 id="welcomeTitle">{{ _("Welcome to Vinted Notifications") }}</h2>
+        <div class="welcome-track" id="welcomeTrack">
+            <section class="welcome-slide">
+                <span class="welcome-ico" style="--c: #007AFF"><i class="bi bi-search"></i></span>
+                <h3>{{ _("Follow any search") }}</h3>
+                <p>{{ _("Paste a Vinted search URL once and the app keeps watching it for new listings.") }}</p>
+            </section>
+            <section class="welcome-slide">
+                <span class="welcome-ico" style="--c: #FF3B30"><i class="bi bi-bell-fill"></i></span>
+                <h3>{{ _("Know the moment it appears") }}</h3>
+                <p>{{ _("Get a box here, a Telegram message or an RSS item as soon as something new matches.") }}</p>
+            </section>
+            <section class="welcome-slide">
+                <span class="welcome-ico" style="--c: #FFB800"><i class="bi bi-lightning-charge-fill"></i></span>
+                <h3>{{ _("Spot the good deals") }}</h3>
+                <p>{{ _("Listings priced well under the average, and sellers you can trust, are easy to find.") }}</p>
+            </section>
+        </div>
+        <div class="welcome-dots" aria-hidden="true"><span class="on"></span><span></span><span></span></div>
+        <button type="button" class="btn btn-primary welcome-next" id="welcomeNext" data-next="{{ _('Continue') }}" data-done="{{ _('Get started') }}">{{ _("Continue") }}</button>
+        <button type="button" class="welcome-skip" id="welcomeSkip">{{ _("Skip") }}</button>
     </div>
 </div>
 
@@ -222,74 +132,427 @@
     {% for category, message in messages %}
     <div class="alert alert-{{ category }} alert-dismissible fade show flash-message" role="alert">
         {{ message }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="{{ _('Close') }}"></button>
     </div>
     {% endfor %}
     {% endif %}
     {% endwith %}
 </div>
 
-<footer class="footer mt-auto py-4 bg-white">
-    <div class="container-fluid">
-        <div class="row align-items-center">
-            <div class="col-md-4">
-                <p class="mb-1 d-flex align-items-center">
-                    <i class="bi bi-bell-fill me-2 text-info"></i>
-                    <strong class="text-info">Vinted Notifications</strong>
-                    <span class="badge bg-secondary ms-2">v{{ current_version }}</span>
-                </p>
-                <p class="text-muted small mb-0">
-                    &copy; {{ current_year }} <a href="{{ github_url }}" target="_blank"
-                                                 class="text-decoration-none text-info">Vinted Notifications</a>
-                </p>
-            </div>
-            <div class="col-md-4 text-center d-flex flex-column justify-content-center h-100">
-                <p class="mb-1">
-                    <a href="{{ github_url }}/issues" target="_blank" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-bug me-1"></i> Report an issue
-                    </a>
-                </p>
-                <p class="text-muted small mb-0">
-                    <a href="{{ github_url }}#readme" target="_blank" class="text-decoration-none">
-                        <i class="bi bi-book me-1"></i> Documentation
-                    </a>
-                </p>
-            </div>
-            <div class="col-md-4 text-end">
-                <p class="mb-1">
-                    <a href="{{ github_url }}" target="_blank" class="btn btn-sm btn-primary"
-                       style="color: white; font-weight: bold;">
-                        <i class="bi bi-github me-1"></i> GitHub
-                    </a>
-                </p>
-                {% if is_up_to_date is defined %}
-                <p class="text-muted small mb-0">
-                    {% if is_up_to_date %}
-                    <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> Up to date</span>
-                    {% else %}
-                    <a href="{{ github_url }}/releases" target="_blank"
-                       class="badge bg-warning text-dark text-decoration-none"><i
-                            class="bi bi-arrow-up-circle-fill me-1"></i> Update available: {{ latest_version }}</a>
-                    {% endif %}
-                </p>
-                {% endif %}
-            </div>
-        </div>
-    </div>
-</footer>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // Auto-dismiss flash messages after 5 seconds
+    // ---- server status: running / starting / scraper late / update available / unreachable
+    (function () {
+        const indicators = document.querySelectorAll('.srv-status');
+        if (!indicators.length) return;
+        // vnT is defined further down the page, so the texts are looked up when first needed
+        const texts = {
+            ok: ['Server online', 'The server and the scraper are running'],
+            starting: ['Server starting', 'The scraper has not completed its first scan yet'],
+            stale: ['Scraper not responding', 'No scan has finished recently: check the logs'],
+            update: ['Update available', 'The server is running, a newer version is available'],
+            down: ['Server unreachable', 'This page cannot reach the server']
+        };
+        function show(state) {
+            const text = texts[state] || texts.down;
+            indicators.forEach(function (el) {
+                el.dataset.state = state;
+                el.querySelector('.srv-label').textContent = vnT(text[0]);
+                el.title = vnT(text[1]);
+            });
+        }
+        function poll() {
+            fetch('/api/status', {headers: {'X-Requested-With': 'fetch'}, cache: 'no-store'})
+                .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+                .then(function (s) { show(s.scraper === 'ok' ? (s.update ? 'update' : 'ok') : s.scraper); })
+                .catch(function () { show('down'); });
+        }
+        document.addEventListener('DOMContentLoaded', function () { poll(); setInterval(poll, 30000); });
+    })();
+
+    // ---- password strength hint (advisory: the server applies the real rules)
     document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('input[data-pw-meter]').forEach(function (input) {
+            const min = parseInt(input.dataset.pwMeter, 10) || 15;
+            const bar = document.createElement('div');
+            bar.className = 'pw-meter';
+            bar.innerHTML = '<span class="pw-bar"><i></i></span><small></small>';
+            const host = input.closest('.ios-group, .mb-3, form') || input.parentNode;
+            const row = input.closest('label, .mb-3') || input;
+            row.parentNode.insertBefore(bar, row.nextSibling);
+            const fill = bar.querySelector('i');
+            const text = bar.querySelector('small');
+            function update() {
+                const value = input.value;
+                const length = Array.from(value).length;
+                let state, message;
+                if (!length) { bar.dataset.level = ''; fill.style.width = '0'; text.textContent = vnT('At least %(n)s characters', {n: min}); return; }
+                const classes = [/[a-z]/, /[A-Z]/, /[0-9]/, /[^A-Za-z0-9]/].filter(function (re) { return re.test(value); }).length;
+                const words = value.trim().split(/\s+/).length;
+                if (length < min) { state = 'weak'; message = vnT('%(n)s more characters needed', {n: min - length}); }
+                else if (length >= 20 || words >= 4 || classes >= 3) { state = 'strong'; message = vnT('Strong'); }
+                else { state = 'ok'; message = vnT('Acceptable: a few random words are stronger'); }
+                bar.dataset.level = state;
+                fill.style.width = Math.min(100, Math.round(length / (min + 8) * 100)) + '%';
+                text.textContent = message;
+            }
+            input.addEventListener('input', update);
+            update();
+        });
+    });
+
+    // ---- Web Push: notifications on this device (Android, and iOS/iPadOS 16.4+ once added to the Home Screen)
+    window.vnPush = (function () {
+        const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+        function b64ToBytes(b64) {
+            const pad = '='.repeat((4 - b64.length % 4) % 4);
+            const raw = atob((b64 + pad).replace(/-/g, '+').replace(/_/g, '/'));
+            return Uint8Array.from(raw, function (c) { return c.charCodeAt(0); });
+        }
+        function post(url, body) {
+            return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Requested-With': 'fetch'}, body: JSON.stringify(body || {})})
+                .then(function (r) { return r.json().then(function (j) { j.httpStatus = r.status; return j; }); });
+        }
+        function registration() {
+            // Make sure a worker is registered (the page does it on load, but iOS can be slow), then wait for it to be
+            // active. "ready" never resolves when registration failed, so give up after a while.
+            const registered = navigator.serviceWorker.getRegistration('/').then(function (reg) {
+                return reg || navigator.serviceWorker.register('/sw.js', {scope: '/'});
+            });
+            return Promise.race([
+                registered.then(function () { return navigator.serviceWorker.ready; }),
+                new Promise(function (_, reject) { setTimeout(function () { reject(new Error('The service worker did not start')); }, 10000); })
+            ]);
+        }
+        function current() {
+            if (!supported) return Promise.resolve(null);
+            return registration().then(function (reg) { return reg.pushManager.getSubscription(); });
+        }
+        function isIos() { return /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); }
+        function standalone() { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true; }
+        function state() {
+            // Resolves to one of: unsupported, ios-install, denied, off, on
+            if (!supported) return Promise.resolve(isIos() && !standalone() ? 'ios-install' : 'unsupported');
+            if (Notification.permission === 'denied') return Promise.resolve('denied');
+            return current().then(function (sub) { return sub ? 'on' : 'off'; }, function () { return 'unsupported'; });
+        }
+        function enable() {
+            // iOS only shows the permission prompt when this is called straight from a tap: ask first, before any
+            // other asynchronous work, and call it exactly once.
+            let asked;
+            try {
+                asked = Notification.requestPermission();
+            } catch (e) {
+                return Promise.reject(e);
+            }
+            return Promise.resolve(asked).then(function (permission) {
+                if (permission !== 'granted') { const e = new Error('Permission ' + permission); e.code = 'denied'; throw e; }
+                return fetch('/api/push/key', {headers: {'X-Requested-With': 'fetch'}}).then(function (r) {
+                    if (!r.ok) throw new Error('Key request failed (' + r.status + ')');
+                    return r.json();
+                });
+            }).then(function (data) {
+                return registration().then(function (reg) {
+                    return reg.pushManager.subscribe({userVisibleOnly: true, applicationServerKey: b64ToBytes(data.key)});
+                });
+            }).then(function (sub) {
+                return post('/api/push/subscribe', sub.toJSON()).then(function (result) {
+                    if (result.status !== 'success') throw new Error(result.message || 'The server refused the subscription');
+                    return result;
+                });
+            });
+        }
+        // What this device can do, for the settings page (and for bug reports)
+        function diagnose() {
+            return navigator.serviceWorker.getRegistration('/').then(function (reg) {
+                const worker = reg && (reg.active || reg.waiting || reg.installing);
+                return {
+                    installed: standalone(),
+                    ios: isIos(),
+                    permission: ('Notification' in window) ? Notification.permission : 'n/a',
+                    pushManager: 'PushManager' in window,
+                    worker: worker ? worker.state : 'none',
+                    secure: window.isSecureContext
+                };
+            }).catch(function () { return {installed: standalone(), ios: isIos(), permission: 'n/a', pushManager: 'PushManager' in window, worker: 'n/a', secure: window.isSecureContext}; });
+        }
+        function disable() {
+            return current().then(function (sub) {
+                if (!sub) return {status: 'success'};
+                const endpoint = sub.endpoint;
+                return sub.unsubscribe().then(function () { return post('/api/push/unsubscribe', {endpoint: endpoint}); });
+            });
+        }
+        return {supported: supported, state: state, enable: enable, disable: disable, diagnose: diagnose, test: function (delay) { return post('/api/push/test', {delay: delay || 0}); }};
+    })();
+</script>
+
+<script>
+    // Messages translated on the server, for scripts: vnT('English text', {name: value})
+    const VN_I18N = {{ js_i18n|tojson }};
+
+    function vnT(message, vars) {
+        let text = VN_I18N[message] || message;
+        if (vars) {
+            Object.keys(vars).forEach(function (key) {
+                text = text.split('%(' + key + ')s').join(vars[key]);
+            });
+        }
+        return text;
+    }
+
+    // Shared date helpers: timestamps are shown in the timezone chosen in Configuration
+    // (the browser's own when none is set).
+    const VN_TZ = {{ display_tz|tojson }};
+
+    function vnAbsolute(ts) {
+        const date = new Date(ts * 1000);
+        try {
+            return date.toLocaleString('sv-SE', VN_TZ ? {timeZone: VN_TZ} : undefined);
+        } catch (e) {
+            return date.toLocaleString('sv-SE');
+        }
+    }
+
+    function vnRelative(ts) {
+        const s = Math.max(0, Date.now() / 1000 - ts);
+        if (s < 60) return vnT('just now');
+        if (s < 3600) return vnT('%(n)s min ago', {n: Math.floor(s / 60)});
+        if (s < 86400) return vnT('%(n)s h ago', {n: Math.floor(s / 3600)});
+        return vnT('%(n)s d ago', {n: Math.floor(s / 86400)});
+    }
+
+    function vnLocalizeTimes(root) {
+        (root || document).querySelectorAll('time.local-ts').forEach(function (el) {
+            const ts = parseInt(el.dataset.ts, 10);
+            if (!ts) return;
+            el.title = vnAbsolute(ts);
+            el.textContent = el.dataset.rel ? vnRelative(ts) : vnAbsolute(ts);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        vnLocalizeTimes(document);
+        setInterval(function () { vnLocalizeTimes(document); }, 30000);
+
+        // Auto-dismiss flash messages after 5 seconds
         setTimeout(function () {
-            const alerts = document.querySelectorAll('.flash-message');
-            alerts.forEach(function (alert) {
-                const bsAlert = new bootstrap.Alert(alert);
-                bsAlert.close();
+            document.querySelectorAll('.flash-message').forEach(function (alert) {
+                bootstrap.Alert.getOrCreateInstance(alert).close();
             });
         }, 5000);
+
+        // Scroll edge effect at the top and a tab bar that minimises while scrolling down
+        const edgeTop = document.getElementById('edgeTop');
+        const tabbar = document.getElementById('tabbar');
+        let lastY = window.scrollY;
+        window.addEventListener('scroll', function () {
+            const y = window.scrollY;
+            edgeTop.classList.toggle('on', y > 6);
+            if (y > lastY + 6 && y > 120) tabbar.classList.add('min');
+            else if (y < lastY - 6 || y < 60) tabbar.classList.remove('min');
+            lastY = y;
+        }, {passive: true});
     });
+
+    // ---- Progressive web app: service worker and "Install app" buttons ----
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+            navigator.serviceWorker.register('/sw.js', {scope: '/'}).catch(function () {});
+        });
+    }
+    let vnInstallPrompt = null;
+    function vnShowInstall(visible) {
+        document.querySelectorAll('.js-install').forEach(function (b) { b.hidden = !visible; });
+    }
+    window.addEventListener('beforeinstallprompt', function (e) {
+        e.preventDefault();
+        vnInstallPrompt = e;
+        vnShowInstall(true);
+    });
+    window.addEventListener('appinstalled', function () {
+        vnInstallPrompt = null;
+        vnShowInstall(false);
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.js-install').forEach(function (button) {
+            button.addEventListener('click', function () {
+                if (!vnInstallPrompt) return;
+                vnInstallPrompt.prompt();
+                vnInstallPrompt.userChoice.finally(function () {
+                    vnInstallPrompt = null;
+                    vnShowInstall(false);
+                });
+            });
+        });
+    });
+
+    // ---- Welcome screen (first launch of the installed app; "?welcome=1" or Settings shows it again) ----
+    (function () {
+        const KEY = 'vn-welcome';
+        document.addEventListener('DOMContentLoaded', function () {
+            const el = document.getElementById('welcome');
+            if (!el) return;
+            const track = document.getElementById('welcomeTrack');
+            const slides = el.querySelectorAll('.welcome-slide');
+            const dots = el.querySelectorAll('.welcome-dots span');
+            const next = document.getElementById('welcomeNext');
+            let index = 0;
+            const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || navigator.standalone === true;
+            const seen = function () { try { return localStorage.getItem(KEY) === '1'; } catch (e) { return false; } };
+
+            function update() {
+                dots.forEach(function (dot, i) { dot.classList.toggle('on', i === index); });
+                next.textContent = index === slides.length - 1 ? next.dataset.done : next.dataset.next;
+            }
+            function go(i) {
+                index = Math.max(0, Math.min(slides.length - 1, i));
+                track.scrollTo({left: index * track.clientWidth, behavior: 'smooth'});
+                update();
+            }
+            function open() {
+                index = 0;
+                track.scrollLeft = 0;
+                el.hidden = false;
+                document.body.classList.add('welcome-open');
+                update();
+                next.focus();
+            }
+            function close() {
+                try { localStorage.setItem(KEY, '1'); } catch (e) { /* ignore */ }
+                el.hidden = true;
+                document.body.classList.remove('welcome-open');
+            }
+
+            track.addEventListener('scroll', function () {
+                const i = Math.round(track.scrollLeft / track.clientWidth);
+                if (i !== index) { index = i; update(); }
+            }, {passive: true});
+            next.addEventListener('click', function () { if (index >= slides.length - 1) close(); else go(index + 1); });
+            document.getElementById('welcomeSkip').addEventListener('click', close);
+            document.addEventListener('keydown', function (e) { if (!el.hidden && e.key === 'Escape') close(); });
+            window.vnWelcome = {open: open};
+
+            if (/[?&]welcome=1/.test(location.search) || (standalone && !seen())) open();
+        });
+    })();
+</script>
+<script>
+    // ---- Listing card: pop-up, availability check, removal ----
+    (function () {
+        function toast(message, status) {
+            const holder = document.querySelector('.flash-messages');
+            if (!holder || !message) return;
+            const el = document.createElement('div');
+            el.className = 'alert alert-' + (status === 'success' ? 'success' : 'danger') + ' flash-message fade show';
+            el.setAttribute('role', 'alert');
+            el.textContent = message;
+            holder.appendChild(el);
+            setTimeout(function () { el.remove(); }, 4000);
+        }
+        window.vnToast = toast;
+
+        function post(url) {
+            return fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json', 'X-Requested-With': 'fetch'}, credentials: 'same-origin', body: '{}'})
+                .then(function (r) { return r.json().then(function (j) { return {ok: r.ok, data: j}; }).catch(function () { return {ok: r.ok, data: {}}; }); });
+        }
+        window.vnPost = post;
+
+        function dropItem(id) {
+            document.querySelectorAll('[data-id="' + id + '"]').forEach(function (node) {
+                node.classList.add('gone');
+                setTimeout(function () { node.remove(); }, 260);
+            });
+        }
+
+        const modalEl = document.getElementById('itemSheet');
+        const body = document.getElementById('itemSheetBody');
+        function hideSheet() {
+            const instance = window.bootstrap && bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
+        }
+
+        // The card was just shown: Android launches the Vinted app by intent, and the listing is checked once
+        window.vnSheetInit = function (card) {
+            if (!card) return;
+            const open = card.querySelector('#openVinted');
+            if (open && /Android/i.test(navigator.userAgent)) open.setAttribute('href', open.getAttribute('data-android'));
+            const id = card.getAttribute('data-lc-item');
+            const state = card.querySelector('.lc-state');
+            if (!id || !state) return;
+            post('/api/items/' + id + '/check').then(function (res) {
+                const status = res.data && res.data.status;
+                if (res.data && res.data.removed) {
+                    state.textContent = vnT('No longer available: removed from your items');
+                    state.className = 'lc-state lc-state-gone';
+                    state.hidden = false;
+                    dropItem(id);
+                } else if (status === 'sold') {
+                    state.textContent = vnT('Sold');
+                    state.className = 'lc-state lc-state-gone';
+                    state.hidden = false;
+                } else if (status === 'removed') {
+                    state.textContent = vnT('No longer available');
+                    state.className = 'lc-state lc-state-gone';
+                    state.hidden = false;
+                }
+            }).catch(function () {});
+        };
+
+        function openSheet(id) {
+            fetch('/items/' + id + '/sheet', {headers: {'X-Requested-With': 'fetch'}, credentials: 'same-origin'})
+                .then(function (r) { if (!r.ok) throw new Error(); return r.text(); })
+                .then(function (html) {
+                    body.innerHTML = html;
+                    if (typeof vnLocalizeTimes === 'function') vnLocalizeTimes(body);
+                    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+                    vnSheetInit(body.querySelector('.lc-card'));
+                })
+                .catch(function () { toast(vnT('This listing is no longer in your items.'), 'error'); });
+        }
+
+        document.addEventListener('click', function (event) {
+            const target = event.target;
+            // X on the card
+            const close = target.closest && target.closest('[data-lc-close]');
+            if (close && close.closest('#itemSheet')) { event.preventDefault(); hideSheet(); return; }
+            // trash can: the first tap asks, the second removes
+            const del = target.closest && target.closest('.js-del-item');
+            if (del) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!del.classList.contains('confirm')) {
+                    del.classList.add('confirm');
+                    clearTimeout(del._t);
+                    del._t = setTimeout(function () { del.classList.remove('confirm'); }, 3500);
+                    return;
+                }
+                clearTimeout(del._t);
+                del.disabled = true;
+                const id = del.getAttribute('data-item-id');
+                post('/api/items/' + id + '/delete').then(function (res) {
+                    if (res.ok) {
+                        dropItem(id);
+                        if (del.closest('#itemSheet')) hideSheet();
+                        if (del.closest('.lc-card') && !del.closest('#itemSheet')) window.location.href = '/items';
+                        toast(vnT('Removed from your items'), 'success');
+                    } else {
+                        del.disabled = false;
+                        del.classList.remove('confirm');
+                        toast((res.data && res.data.message) || vnT('Could not remove the item'), 'error');
+                    }
+                }).catch(function () { del.disabled = false; del.classList.remove('confirm'); });
+                return;
+            }
+            // a card or row: show its sheet (links and buttons inside keep their own job, except the photo)
+            const card = target.closest && target.closest('[data-sheet-item]');
+            if (!card) return;
+            const control = target.closest('a, button, input, select, label');
+            if (control && !control.classList.contains('deal-photo')) return;
+            if (control) event.preventDefault();
+            openSheet(card.getAttribute('data-sheet-item'));
+        });
+    })();
 </script>
 {% block scripts %}{% endblock %}
 </body>

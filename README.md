@@ -199,6 +199,69 @@ Queries must be added with a whole link. It works with filters.:
 The RSS feed provides an alternative way to receive notifications. After enabling it in the Web UI, access it
 at [http://localhost:8080](http://localhost:8080).
 
+## 👥 Multiple users (shared server)
+
+By default the web interface is a single-user tool. To share one server between several people, go to
+**Configuration → Security → Multiple accounts** and create the first administrator. Everything that
+exists at that point (queries, items, allowlist, settings) moves to that account, and from then on
+everyone signs in.
+
+- Every account has its **own queries, items, allowlist, language/timezone, banned words, message template,
+  Telegram bot (token + chat ID) and private RSS feed** (`/feed/<token>`).
+- Administrators also manage the server-wide settings (refresh delay, proxies, RSS port...), the accounts and the logs.
+  Identical searches from different accounts are fetched from Vinted only once.
+- Administrators create accounts from **Accounts**; they can also allow self-service sign-up in Configuration → Server.
+- Environment variables: `VN_WEB_PASSWORD` (the single password while accounts are off; it has no effect afterwards),
+  `VN_COOKIE_SECURE=1` (serve cookies over HTTPS only) and `VN_TRUST_PROXY=1` (trust `X-Forwarded-*` headers when
+  running behind a reverse proxy).
+- **Forgotten administrator password?** There is deliberately no master password. On the server, run:
+
+  ```bash
+  docker compose exec -u appuser vinted-notifications python reset_admin_password.py --generate
+  ```
+
+  (add `--user NAME` for another account, `--enable` to re-enable a disabled one; without `--generate` you type the
+  temporary password). It prints a one-time password, signs the account out everywhere and forces a new password at the
+  next sign-in. Only someone who can already run commands on the server can do this. Passwords an administrator sets for
+  a member are single-use in the same way.
+- Serve the interface over HTTPS when it is reachable from the Internet.
+
+## 🔔 Push notifications
+
+Install the web app on your phone (Android: *Install app*; iPhone/iPad, iOS 16.4+: *Share → Add to Home Screen*), open
+**Settings → Notifications → Push notifications** and turn them on for that device. Then choose, for each query, whether it
+sends a push: the switch is in the form for adding a query and in the one for editing it. Browsers only allow push over
+HTTPS, so serve the interface through the bundled reverse proxy (below) or your own.
+
+## 🧹 Sold and removed listings
+
+Stored items are verified in the background, with no setting to manage. Vinted has no endpoint for "is this listing still there", so the listing's own page is asked: a removed listing answers 404 (a cheap HEAD request), a sold one still loads with its purchase state in the page data. Anything unclear is treated as unknown and never deletes anything; a sold listing must be seen sold on two checks before it is dropped. Checks are paced (a small batch every 15 minutes, a pause between requests, each item at most once every 6 hours), and opening an item in the app checks that one item once. Deleted items are remembered, so a later scan does not announce them again. A single item can also be removed with the trash can on its card.
+
+## 🔒 HTTPS and security
+
+```bash
+echo "VN_DOMAIN=vinted.example.com" > .env
+docker compose -f docker-compose.yml -f docker-compose.caddy.yml up -d --build
+```
+
+[Caddy](https://caddyserver.com) obtains and renews a Let's Encrypt certificate and becomes the only public entry point
+(ports 80/443); the app's own ports then listen on `127.0.0.1` only.
+
+What the interface does for you:
+
+- **Passwords** follow NIST SP 800-63B rev. 4: at least 15 characters (passphrases welcome, any character allowed), refused
+  when too common, a simple pattern, containing the username or the app name, or found in known breaches (checked with the
+  Have I Been Pwned range API: only a 5-character hash prefix is sent; set `VN_PWNED_CHECK=0` to switch it off).
+- **Abuse limits**: per-address rate limits on pages, static files, sign-in/sign-up and sensitive actions, sign-in lockout,
+  request-size limit, and a production HTTP server (waitress) with bounded threads, connections and timeouts.
+- **Browser protections**: Content-Security-Policy, `frame-ancestors 'none'`, HSTS over HTTPS, SameSite cookies, a same-origin
+  check on every state-changing request (CSRF), escaped output, parameterised SQL, and Vinted-only scraper targets.
+- **Container**: read-only filesystem, all capabilities dropped except those the entrypoint needs, `no-new-privileges`, a
+  process limit and a health check (`/health`).
+
+The rate limiter counts per client address, so run it behind the proxy with `VN_TRUST_PROXY=1` (the Caddy file does).
+Put volumetric DDoS protection (your cloud firewall or a CDN) in front of anything that is public.
+
 ## ⚙️ Advanced Configuration
 
 ### Proxy Support
@@ -268,6 +331,16 @@ MESSAGE = '''\
 2. Back up your `vinted_notifications.db` file
 3. Replace all files with the new ones
 4. Restart the application
+
+## ℹ️ Trademark notice
+
+This is an unofficial tool. Vinted and the Vinted logo are trademarks of Vinted UAB; the "V" mark used for the app icon and
+sidebar comes from the [Simple Icons](https://simpleicons.org) project (the glyph is CC0, the brand stays Vinted's).
+
+## ℹ️ Trademark notice
+
+This is an unofficial tool. Vinted and the Vinted logo are trademarks of Vinted UAB; the "V" mark used for the app icon and
+sidebar comes from the [Simple Icons](https://simpleicons.org) project (the glyph is CC0, the brand stays Vinted's).
 
 ## 🤝 Contributing
 

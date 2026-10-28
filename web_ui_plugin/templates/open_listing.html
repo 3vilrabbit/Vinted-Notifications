@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+
+{% block title %}{{ _("Open in Vinted") }}{% endblock %}
+
+{% block content %}
+<div class="lc-wrap">
+    {% include "_listing_sheet.html" %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>document.addEventListener('DOMContentLoaded', function () { vnSheetInit(document.querySelector('.sheet-card')); });</script>
+{% endblock %}

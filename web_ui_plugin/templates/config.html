@@ -1,304 +1,334 @@
 {% extends "base.html" %}
+{% from "_macros.html" import theme_switch, server_status %}
 
-{% block title %}Configuration - Vinted Notifications{% endblock %}
+{% block title %}{{ _("Configuration - Vinted Notifications") }}{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Configuration</h1>
+<div class="d-flex justify-content-between flex-wrap align-items-center">
+    <h1 class="h2">{{ _("Configuration") }}</h1>
 </div>
 
-<div class="row">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex align-items-center">
-                <i class="bi bi-gear me-2 text-info"></i>
-                <h5 class="card-title mb-0">Application Settings</h5>
-            </div>
-            <div class="card-body">
-                <form action="/update_config" method="post">
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="card h-100">
-                                <div class="card-header d-flex align-items-center">
-                                    <i class="bi bi-gear-fill me-2 text-info"></i>
-                                    <h5 class="card-title mb-0">System Settings</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="items_per_query" class="form-label">Items Per Query</label>
-                                                <input type="number" class="form-control" id="items_per_query"
-                                                       name="items_per_query" value="{{ params.items_per_query }}">
-                                                <small class="form-text text-muted">Maximum number of items to fetch per
-                                                    query</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-6">
-                                            <div class="mb-3">
-                                                <label for="query_refresh_delay" class="form-label">Query Refresh Delay
-                                                    (seconds)</label>
-                                                <input type="number" class="form-control" id="query_refresh_delay"
-                                                       name="query_refresh_delay"
-                                                       value="{{ params.query_refresh_delay }}">
-                                                <small class="form-text text-muted">Delay between query refreshes in
-                                                    seconds</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="banwords-input" class="form-label">Banwords</label>
-                                                <div class="input-group mb-2">
-                                                    <input type="text" class="form-control" id="banwords-input"
-                                                           placeholder="Enter a word to ban">
-                                                    <button class="btn btn-outline-secondary" type="button"
-                                                            id="add-banword-btn">Add
-                                                    </button>
-                                                </div>
-                                                <div id="banwords-container" class="d-flex flex-wrap gap-2 mb-2">
-                                                    <!-- Banwords will be displayed here as tags -->
-                                                </div>
-                                                <input type="hidden" id="banwords" name="banwords"
-                                                       value="{{ params.banwords }}">
-                                                <small class="form-text text-muted">Words to filter out from item
-                                                    titles. Items with these words in their titles will be
-                                                    ignored.</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mb-4">
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header d-flex align-items-center">
-                                    <i class="bi bi-telegram me-2 text-info"></i>
-                                    <h5 class="card-title mb-0">Telegram Bot</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <div class="form-check form-switch">
-                                            {% if params.telegram_enabled == 'True' %}
-                                            <input class="form-check-input" type="checkbox" id="telegram_enabled"
-                                                   name="telegram_enabled" checked>
-                                            {% else %}
-                                            <input class="form-check-input" type="checkbox" id="telegram_enabled"
-                                                   name="telegram_enabled">
-                                            {% endif %}
-                                            <label class="form-check-label" for="telegram_enabled">
-                                                Auto Start
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="telegram_token" class="form-label">Bot Token</label>
-                                        <input type="text" class="form-control" id="telegram_token"
-                                               name="telegram_token" value="{{ params.telegram_token }}">
-                                        <small class="form-text text-muted">Get this from BotFather</small>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="telegram_chat_id" class="form-label">Chat ID</label>
-                                        <input type="text" class="form-control" id="telegram_chat_id"
-                                               name="telegram_chat_id" value="{{ params.telegram_chat_id }}">
-                                        <small class="form-text text-muted">The chat ID where notifications will be
-                                            sent</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="card h-100">
-                                <div class="card-header d-flex align-items-center">
-                                    <i class="bi bi-rss me-2 text-info"></i>
-                                    <h5 class="card-title mb-0">RSS Feed</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="mb-3">
-                                        <div class="form-check form-switch">
-                                            {% if params.rss_enabled == 'True' %}
-                                            <input class="form-check-input" type="checkbox" id="rss_enabled"
-                                                   name="rss_enabled" checked>
-                                            {% else %}
-                                            <input class="form-check-input" type="checkbox" id="rss_enabled"
-                                                   name="rss_enabled">
-                                            {% endif %}
-                                            <label class="form-check-label" for="rss_enabled">
-                                                Auto Start
-                                            </label>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="rss_port" class="form-label">Port</label>
-                                        <input type="number" class="form-control" id="rss_port" name="rss_port"
-                                               value="{{ params.rss_port }}">
-                                        <small class="form-text text-muted">The port on which the RSS feed will be
-                                            served</small>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label for="rss_max_items" class="form-label">Maximum Items</label>
-                                        <input type="number" class="form-control" id="rss_max_items"
-                                               name="rss_max_items" value="{{ params.rss_max_items }}">
-                                        <small class="form-text text-muted">Maximum number of items to keep in the RSS
-                                            feed</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="card h-100">
-                                <div class="card-header d-flex align-items-center">
-                                    <i class="bi bi-shield-lock me-2 text-info"></i>
-                                    <h5 class="card-title mb-0">Proxy Settings</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <div class="form-check form-switch">
-                                                    {% if params.check_proxies == 'True' %}
-                                                    <input class="form-check-input" type="checkbox" id="check_proxies"
-                                                           name="check_proxies" checked>
-                                                    {% else %}
-                                                    <input class="form-check-input" type="checkbox" id="check_proxies"
-                                                           name="check_proxies">
-                                                    {% endif %}
-                                                    <label class="form-check-label" for="check_proxies">
-                                                        Check Proxies
-                                                    </label>
-                                                    <small class="form-text text-muted d-block">Verify if proxies are
-                                                        working before using them</small>
-                                                </div>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="proxy_list" class="form-label">Proxy List</label>
-                                                <textarea class="form-control" id="proxy_list" name="proxy_list"
-                                                          rows="3">{{ params.proxy_list }}</textarea>
-                                                <small class="form-text text-muted">List of proxies separated by
-                                                    semicolons (;)<br>
-                                                    Format: http://ip:port or ip:port</small>
-                                            </div>
-                                            <div class="mb-3">
-                                                <label for="proxy_list_link" class="form-label">Proxy List Link</label>
-                                                <input type="text" class="form-control" id="proxy_list_link"
-                                                       name="proxy_list_link" value="{{ params.proxy_list_link }}">
-                                                <small class="form-text text-muted">URL to fetch proxies from (one proxy
-                                                    per line)</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="row mb-4">
-                        <div class="col-md-12">
-                            <div class="card h-100">
-                                <div class="card-header d-flex align-items-center">
-                                    <i class="bi bi-gear-wide-connected me-2 text-info"></i>
-                                    <h5 class="card-title mb-0">Advanced Settings</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div class="row">
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="message_template" class="form-label">Notification Message
-                                                    Template</label>
-                                                <textarea class="form-control" id="message_template"
-                                                          name="message_template"
-                                                          rows="6">{{ params.message_template }}</textarea>
-                                                <small class="form-text text-muted">Template for notification messages.
-                                                    Available variables: {title}, {price}, {brand}, {image}</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="user_agents" class="form-label">User Agents</label>
-                                                <textarea class="form-control" id="user_agents" name="user_agents"
-                                                          rows="5">{{ params.user_agents }}</textarea>
-                                                <small class="form-text text-muted">List of user agents for HTTP
-                                                    requests (JSON format)</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-12">
-                                            <div class="mb-3">
-                                                <label for="default_headers" class="form-label">Default Headers</label>
-                                                <textarea class="form-control" id="default_headers"
-                                                          name="default_headers"
-                                                          rows="3">{{ params.default_headers }}</textarea>
-                                                <small class="form-text text-muted">Default headers for HTTP requests
-                                                    (JSON format)</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-12">
-                            <button type="submit" class="btn btn-primary">Save Configuration</button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
+<!-- Phones and tablets: appearance and the places that don't have a tab -->
+<div class="ios-group shortcuts d-lg-none">
+    <div class="ios-row">
+        <span class="ios-label"><span class="row-ico" style="--c: #5856D6"><i class="bi bi-circle-half"></i></span>{{ _("Appearance") }}</span>
+        {{ theme_switch() }}
     </div>
+    <div class="ios-row">
+        <span class="ios-label"><span class="row-ico" style="--c: #34C759"><i class="bi bi-hdd-network-fill"></i></span>{{ _("Server") }}</span>
+        {{ server_status() }}
+    </div>
+    <a href="/allowlist" class="ios-row ios-link"><span class="ios-label"><span class="row-ico" style="--c: #007AFF"><i class="bi bi-globe2"></i></span>{{ _("Allowlist") }}</span><i class="bi bi-chevron-right chev"></i></a>
+    {% if is_admin and accounts_enabled %}<a href="/users" class="ios-row ios-link"><span class="ios-label"><span class="row-ico" style="--c: #FF9500"><i class="bi bi-people-fill"></i></span>{{ _("Accounts") }}</span><i class="bi bi-chevron-right chev"></i></a>{% endif %}
+    {% if is_admin %}<a href="/logs" class="ios-row ios-link"><span class="ios-label"><span class="row-ico" style="--c: #8E8E93"><i class="bi bi-terminal-fill"></i></span>{{ _("Logs") }}</span><i class="bi bi-chevron-right chev"></i></a>{% endif %}
+    <button type="button" class="ios-row ios-button js-install" hidden><span class="ios-label"><span class="row-ico" style="--c: #34C759"><i class="bi bi-phone"></i></span>{{ _("Install app") }}</span></button>
+    {% if auth_enabled %}<form action="/logout" method="post"><button type="submit" class="ios-row ios-button ios-danger"><span class="ios-label"><span class="row-ico" style="--c: #FF3B30"><i class="bi bi-box-arrow-right"></i></span>{{ _("Log out") }}</span></button></form>{% endif %}
 </div>
 
-<div class="row mt-4">
-    <div class="col-md-12">
-        <div class="card">
-            <div class="card-header d-flex align-items-center">
-                <i class="bi bi-toggles me-2 text-info"></i>
-                <h5 class="card-title mb-0">Process Control</h5>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h6 class="mb-0">Telegram Bot</h6>
-                                <small class="text-muted process-status" data-process="telegram">Checking
-                                    status...</small>
-                            </div>
-                            <div>
-                                <button class="btn btn-success process-control" data-process="telegram"
-                                        data-action="start">
-                                    <i class="bi bi-play-fill"></i> Start
-                                </button>
-                                <button class="btn btn-danger process-control" data-process="telegram"
-                                        data-action="stop">
-                                    <i class="bi bi-stop-fill"></i> Stop
-                                </button>
-                            </div>
-                        </div>
+<div class="settings">
+    <nav class="settings-nav" aria-label="{{ _('Settings sections') }}">
+        <a href="#general" data-pane="general"><span class="row-ico" style="--c: #8E8E93"><i class="bi bi-gear-fill"></i></span><span>{{ _("General") }}</span></a>
+        <a href="#notifications" data-pane="notifications"><span class="row-ico" style="--c: #FF3B30"><i class="bi bi-bell-fill"></i></span><span>{{ _("Notifications") }}</span></a>
+        {% if is_admin %}<a href="#server" data-pane="server"><span class="row-ico" style="--c: #007AFF"><i class="bi bi-hdd-network-fill"></i></span><span>{{ _("Server") }}</span></a>{% endif %}
+        <a href="#security" data-pane="security"><span class="row-ico" style="--c: #34C759"><i class="bi bi-person-fill"></i></span><span>{{ _("Account") if accounts_enabled else _("Security") }}</span></a>
+    </nav>
+
+    <div class="settings-body">
+        <form action="/update_config" method="post" id="configForm">
+
+            <!-- General (personal) -->
+            <section class="pane" id="pane-general">
+                <div class="ios-title">{{ _("Appearance") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row">
+                        <span class="ios-label">{{ _("Theme") }}</span>
+                        {{ theme_switch(labels=True) }}
                     </div>
-                    <div class="col-md-6">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <h6 class="mb-0">RSS Feed</h6>
-                                <small class="text-muted process-status" data-process="rss">Checking status...</small>
-                            </div>
-                            <div>
-                                <button class="btn btn-success process-control" data-process="rss" data-action="start">
-                                    <i class="bi bi-play-fill"></i> Start
-                                </button>
-                                <button class="btn btn-danger process-control" data-process="rss" data-action="stop">
-                                    <i class="bi bi-stop-fill"></i> Stop
-                                </button>
-                            </div>
+                    <label class="ios-row" for="language"><span class="ios-label">{{ _("Language") }}</span>
+                        <select class="ios-select" id="language" name="language">
+                            <option value="" {% if not us.language %}selected{% endif %}>{{ _("Automatic") }}</option>
+                            {% for code, name in languages %}<option value="{{ code }}" {% if us.language == code %}selected{% endif %}>{{ name }}</option>{% endfor %}
+                        </select></label>
+                    <label class="ios-row" for="timezone"><span class="ios-label">{{ _("Timezone") }}</span>
+                        <input type="text" class="ios-input" id="timezone" name="timezone" list="timezoneList" value="{{ us.timezone or '' }}" placeholder="{{ _('Browser default') }}" autocomplete="off" autocapitalize="none"></label>
+                    <datalist id="timezoneList">{% for tz in timezones %}<option value="{{ tz }}">{% endfor %}</datalist>
+                </div>
+                <p class="ios-foot">{{ _("The theme is remembered on this device. Language applies after you save; Automatic follows each browser's language, with English as the fallback. For the timezone use names like Europe/Rome; leave it empty to use your browser's.") }}</p>
+
+                <div class="ios-title">{{ _("Items page") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row">
+                        <label class="ios-label" for="items_autorefresh">{{ _("Auto-refresh") }}<span class="ios-sub">{{ _("Reload the list on every check, with a progress bar to the next refresh.") }}</span></label>
+                        <span class="form-check form-switch"><input class="form-check-input" type="checkbox" id="items_autorefresh" name="items_autorefresh" {% if us.items_autorefresh == 'True' %}checked{% endif %}></span>
+                    </div>
+                    <div class="ios-row">
+                        <label class="ios-label" for="new_items_notice">{{ _("New items notice") }}<span class="ios-sub">{{ _("Show a box when a refresh finds new items") }}</span></label>
+                        <span class="form-check form-switch"><input class="form-check-input" type="checkbox" id="new_items_notice" name="new_items_notice" {% if us.new_items_notice != 'False' %}checked{% endif %}></span>
+                    </div>
+                </div>
+
+                <div class="ios-title">{{ _("Banned words") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row stack">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="banwords-input" placeholder="{{ _('Word to ban') }}">
+                            <button class="btn btn-outline-secondary" type="button" id="add-banword-btn">{{ _("Add") }}</button>
+                        </div>
+                        <div id="banwords-container" class="d-flex flex-wrap gap-2"></div>
+                        <input type="hidden" id="banwords" name="banwords" value="{{ us.banwords or '' }}">
+                    </div>
+                </div>
+                <p class="ios-foot">{{ _("Listings with any of these words in the title are ignored.") }}</p>
+
+                <div class="ios-title">{{ _("About") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row">
+                        <span class="ios-label"><span class="row-ico" style="--c: #00A8B0"><i class="bi bi-info-circle-fill"></i></span>{{ _("Version") }}</span>
+                        <span class="d-inline-flex align-items-center gap-2">
+                            {% if current_version is defined %}<span class="text-muted">v{{ current_version }}</span>{% endif %}
+                            {% if is_up_to_date %}<span class="chip chip-ok"><i class="bi bi-check-circle-fill"></i> {{ _("Up to date") }}</span>
+                            {% else %}<a class="chip chip-warn text-decoration-none" href="{{ github_url }}/releases" target="_blank" rel="noopener"><i class="bi bi-arrow-up-circle-fill"></i> {{ _('Update %(v)s', v=latest_version) }}</a>{% endif %}
+                        </span>
+                    </div>
+                    <a class="ios-row ios-link" href="{{ repo_url }}#readme" target="_blank" rel="noopener"><span class="ios-label"><span class="row-ico" style="--c: #007AFF"><i class="bi bi-book-fill"></i></span>{{ _("Documentation") }}</span><i class="bi bi-box-arrow-up-right chev"></i></a>
+                    <a class="ios-row ios-link" href="{{ repo_url }}/issues" target="_blank" rel="noopener"><span class="ios-label"><span class="row-ico" style="--c: #FF3B30"><i class="bi bi-bug-fill"></i></span>{{ _("Report an issue") }}</span><i class="bi bi-box-arrow-up-right chev"></i></a>
+                    <a class="ios-row ios-link" href="{{ repo_url }}" target="_blank" rel="noopener"><span class="ios-label"><span class="row-ico" style="--c: #1C1C1E"><i class="bi bi-github"></i></span>GitHub</span><i class="bi bi-box-arrow-up-right chev"></i></a>
+                    <button type="button" class="ios-row ios-button js-install" hidden><span class="ios-label"><span class="row-ico" style="--c: #34C759"><i class="bi bi-phone"></i></span>{{ _("Install app") }}</span></button>
+                </div>
+                <p class="ios-foot">{{ _("Unofficial tool. Vinted and the Vinted logo are trademarks of Vinted UAB.") }}</p>
+            </section>
+
+            <!-- Notifications (personal) -->
+            <section class="pane" id="pane-notifications">
+                <div class="ios-title">{{ _("Push notifications") }}</div>
+                <div class="ios-group" id="pushGroup">
+                    <div class="ios-row">
+                        <span class="ios-label"><span class="row-ico" style="--c: #FF3B30"><i class="bi bi-bell-fill"></i></span>{{ _("This device") }}
+                            <span class="ios-sub" id="pushStatus">{{ _("Checking...") }}</span>
+                            <span class="ios-sub" id="pushDiag"></span>
+                            <span class="ios-sub" id="pushReceived" aria-live="polite"></span></span>
+                        <button type="button" class="btn btn-sm btn-primary" id="pushToggle" hidden></button>
+                    </div>
+                    <button type="button" class="ios-row ios-button" id="pushTest" hidden><span class="ios-label">{{ _("Send a test notification") }}</span></button>
+                    <div class="ios-row">
+                        <span class="ios-label">{{ _("Devices registered") }}</span>
+                        <span class="text-muted" id="pushDevices">{{ push_devices }}</span>
+                    </div>
+                </div>
+                <p class="ios-foot">{{ _("Pick which queries send a push when you add or edit them. On iPhone and iPad, add the app to the Home Screen first (Share, then Add to Home Screen) and open it from there.") }}</p>
+
+                <div class="ios-title">{{ _("Telegram bot") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row">
+                        <span class="ios-label"><span class="row-ico" style="--c: #29A9EB"><i class="bi bi-telegram"></i></span>{{ _("Status") }}</span>
+                        <span class="service-controls">
+                            <small class="process-status text-muted" data-process="telegram">{{ _("Checking...") }}</small>
+                            <button type="button" class="btn btn-sm btn-success process-control" data-process="telegram" data-action="start"><i class="bi bi-play-fill"></i> {{ _("Start") }}</button>
+                            <button type="button" class="btn btn-sm btn-danger process-control" data-process="telegram" data-action="stop"><i class="bi bi-stop-fill"></i> {{ _("Stop") }}</button>
+                        </span>
+                    </div>
+                    <div class="ios-row">
+                        <label class="ios-label" for="telegram_enabled">{{ _("Start automatically") }}</label>
+                        <span class="form-check form-switch"><input class="form-check-input" type="checkbox" id="telegram_enabled" name="telegram_enabled" {% if us.telegram_enabled == 'True' %}checked{% endif %}></span>
+                    </div>
+                    <label class="ios-row" for="telegram_token"><span class="ios-label">{{ _("Bot token") }}</span>
+                        <input type="password" class="ios-input" id="telegram_token" name="telegram_token" value="{{ us.telegram_token or '' }}" autocomplete="off" placeholder="123456:ABC…"></label>
+                    <label class="ios-row" for="telegram_chat_id"><span class="ios-label">{{ _("Chat ID") }}</span>
+                        <input type="text" class="ios-input" id="telegram_chat_id" name="telegram_chat_id" value="{{ us.telegram_chat_id or '' }}" inputmode="numeric" autocomplete="off"></label>
+                </div>
+                <p class="ios-foot">{{ _("Get it from BotFather.") }} {{ _("Where notifications are sent.") }}{% if accounts_enabled %} {{ _("Each account uses its own bot: only the chat above can control it.") }}{% endif %}</p>
+
+                <div class="ios-title">{{ _("RSS feed") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row">
+                        <span class="ios-label"><span class="row-ico" style="--c: #FF9500"><i class="bi bi-rss-fill"></i></span>{{ _("Status") }}</span>
+                        <span class="service-controls">
+                            <small class="process-status text-muted" data-process="rss">{{ _("Checking...") }}</small>
+                            <button type="button" class="btn btn-sm btn-success process-control" data-process="rss" data-action="start"><i class="bi bi-play-fill"></i> {{ _("Start") }}</button>
+                            <button type="button" class="btn btn-sm btn-danger process-control" data-process="rss" data-action="stop"><i class="bi bi-stop-fill"></i> {{ _("Stop") }}</button>
+                        </span>
+                    </div>
+                    <div class="ios-row">
+                        <label class="ios-label" for="rss_enabled">{{ _("Start automatically") }}</label>
+                        <span class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rss_enabled" name="rss_enabled" {% if us.rss_enabled == 'True' %}checked{% endif %}></span>
+                    </div>
+                    <div class="ios-row stack">
+                        <label class="ios-label" for="feedUrl">{{ _("Your private feed address") }}</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control font-monospace" id="feedUrl" value="{{ feed_url }}" readonly>
+                            <button type="button" class="btn btn-outline-secondary" id="copyFeed" aria-label="{{ _('Copy') }}"><i class="bi bi-clipboard"></i></button>
+                            <button type="submit" form="feedTokenForm" class="btn btn-outline-secondary" title="{{ _('Create a new address') }}" aria-label="{{ _('Create a new address') }}"><i class="bi bi-arrow-repeat"></i></button>
                         </div>
                     </div>
                 </div>
+                <p class="ios-foot">{{ _("Anyone with this address can read your feed. Create a new one if it leaks.") }}</p>
+
+                <div class="ios-title">{{ _("Message template") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row stack">
+                        <textarea class="form-control font-monospace" id="message_template" name="message_template" rows="6" aria-label="{{ _('Message template') }}">{{ us.message_template or '' }}</textarea>
+                    </div>
+                </div>
+                <p class="ios-foot">{{ _("Variables: {title}, {price}, {brand}, {image}.") }}</p>
+            </section>
+
+            {% if is_admin %}
+            <!-- Server (administrators) -->
+            <section class="pane" id="pane-server">
+                <div class="ios-title">{{ _("Scraping") }}</div>
+                <div class="ios-group">
+                    <label class="ios-row" for="items_per_query"><span class="ios-label">{{ _("Items per query") }}</span>
+                        <input type="number" class="ios-input" id="items_per_query" name="items_per_query" min="1" inputmode="numeric" value="{{ params.items_per_query }}"></label>
+                    <label class="ios-row" for="query_refresh_delay"><span class="ios-label">{{ _("Check every (seconds)") }}</span>
+                        <input type="number" class="ios-input" id="query_refresh_delay" name="query_refresh_delay" min="1" inputmode="numeric" value="{{ params.query_refresh_delay }}"></label>
+                </div>
+                <p class="ios-foot">{{ _("Newest listings fetched from Vinted on every check.") }} {{ _("Delay between two checks of your queries.") }}{% if accounts_enabled %} {{ _("These apply to every account. Identical searches from different accounts are fetched only once.") }}{% endif %}</p>
+
+                {% if accounts_enabled %}
+                <div class="ios-title">{{ _("Accounts") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row">
+                        <label class="ios-label" for="allow_signup">{{ _("Let people create their own account") }}<span class="ios-sub">{{ _("Adds a sign-up link to the login page. Leave it off to create accounts yourself.") }}</span></label>
+                        <span class="form-check form-switch"><input class="form-check-input" type="checkbox" id="allow_signup" name="allow_signup" {% if params.allow_signup == 'True' %}checked{% endif %}></span>
+                    </div>
+                    <a href="/users" class="ios-row ios-link"><span class="ios-label"><span class="row-ico" style="--c: #FF9500"><i class="bi bi-people-fill"></i></span>{{ _("Manage accounts") }}</span><i class="bi bi-chevron-right chev"></i></a>
+                </div>
+                {% endif %}
+
+                <div class="ios-title">{{ _("RSS server") }}</div>
+                <div class="ios-group">
+                    <label class="ios-row" for="rss_port"><span class="ios-label">{{ _("Port") }}</span>
+                        <input type="number" class="ios-input" id="rss_port" name="rss_port" min="1" max="65535" inputmode="numeric" value="{{ params.rss_port }}"></label>
+                    <label class="ios-row" for="rss_max_items"><span class="ios-label">{{ _("Items in the feed") }}</span>
+                        <input type="number" class="ios-input" id="rss_max_items" name="rss_max_items" min="1" inputmode="numeric" value="{{ params.rss_max_items }}"></label>
+                    <label class="ios-row" for="rss_public_url"><span class="ios-label">{{ _("Public address (optional)") }}</span>
+                        <input type="text" class="ios-input" id="rss_public_url" name="rss_public_url" value="{{ params.rss_public_url or '' }}" placeholder="https://feeds.example.com" autocapitalize="none"></label>
+                </div>
+                <p class="ios-foot">{{ _("The feeds are served on this port, each at its own private address.") }} {{ _("Use it when the feed is published behind a reverse proxy or another host name.") }}</p>
+
+                <div class="ios-title">{{ _("Proxies") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row">
+                        <label class="ios-label" for="check_proxies">{{ _("Check proxies before using them") }}</label>
+                        <span class="form-check form-switch"><input class="form-check-input" type="checkbox" id="check_proxies" name="check_proxies" {% if params.check_proxies == 'True' %}checked{% endif %}></span>
+                    </div>
+                    <div class="ios-row stack">
+                        <label class="ios-label" for="proxy_list">{{ _("Proxy list") }}</label>
+                        <textarea class="form-control font-monospace" id="proxy_list" name="proxy_list" rows="3">{{ params.proxy_list }}</textarea>
+                    </div>
+                    <label class="ios-row" for="proxy_list_link"><span class="ios-label">{{ _("Proxy list link") }}</span>
+                        <input type="text" class="ios-input" id="proxy_list_link" name="proxy_list_link" value="{{ params.proxy_list_link }}" autocapitalize="none"></label>
+                </div>
+                <p class="ios-foot">{{ _("Separated by semicolons (;). Format: http://ip:port or ip:port.") }} {{ _("A URL returning one proxy per line.") }}</p>
+
+                <div class="ios-title">{{ _("Requests") }}</div>
+                <div class="ios-group">
+                    <div class="ios-row stack">
+                        <label class="ios-label" for="user_agents">{{ _("User agents") }}</label>
+                        <textarea class="form-control font-monospace" id="user_agents" name="user_agents" rows="5">{{ params.user_agents }}</textarea>
+                    </div>
+                    <div class="ios-row stack">
+                        <label class="ios-label" for="default_headers">{{ _("Default headers") }}</label>
+                        <textarea class="form-control font-monospace" id="default_headers" name="default_headers" rows="3">{{ params.default_headers }}</textarea>
+                    </div>
+                </div>
+                <p class="ios-foot">{{ _("JSON list of user agents used for HTTP requests.") }} {{ _("JSON object of headers sent with every request.") }}</p>
+            </section>
+            {% endif %}
+
+            <div class="savebar" id="savebar">
+                <span class="text-muted small">{{ _("Changes apply after you save.") }}</span>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1"></i> {{ _("Save configuration") }}</button>
             </div>
-        </div>
+        </form>
+        <form action="/account/feed-token" method="post" id="feedTokenForm" hidden></form>
+
+        <!-- Security / account (separate forms, outside the settings form) -->
+        <section class="pane" id="pane-security">
+            {% if accounts_enabled %}
+            <div class="profile profile-card">
+                <span class="avatar avatar-xl">{{ current_user.username[:1]|upper }}</span>
+                <strong>{{ current_user.username }}</strong>
+                <span class="chip {% if current_user.role == 'admin' %}chip-ok{% endif %}">{{ _("Administrator") if current_user.role == 'admin' else _("Member") }}</span>
+                <small class="text-muted">{{ _("Your queries, items, notifications and settings are private to this account.") }}</small>
+            </div>
+
+            <div class="ios-title">{{ _("Change password") }}</div>
+            <form action="/account/password" method="post" class="ios-group">
+                <label class="ios-row" for="current_password"><span class="ios-label">{{ _("Current password") }}</span>
+                    <input type="password" class="ios-input" id="current_password" name="current_password" autocomplete="current-password" required></label>
+                <label class="ios-row" for="new_password"><span class="ios-label">{{ _("New password") }}</span>
+                    <input type="password" class="ios-input" id="new_password" name="new_password" minlength="{{ min_password_length }}" data-pw-meter="{{ min_password_length }}" autocomplete="new-password" required></label>
+                <label class="ios-row" for="confirm_password"><span class="ios-label">{{ _("Repeat password") }}</span>
+                    <input type="password" class="ios-input" id="confirm_password" name="confirm_password" minlength="{{ min_password_length }}" autocomplete="new-password" required></label>
+                <button type="submit" class="ios-row ios-button">{{ _("Change password") }}</button>
+            </form>
+            <p class="ios-foot">{{ _("At least %(n)s characters; a phrase of a few words works well. Common and breached passwords are refused.", n=min_password_length) }} {{ _("Changing a password signs that account out of every browser.") }}</p>
+
+            {% if is_admin %}
+            <div class="ios-title">{{ _("Good to know") }}</div>
+            <div class="ios-group">
+                <div class="ios-row stack ios-notes">
+                    <ul class="mb-0">
+                        <li>{{ _("Five wrong attempts lock the login for a minute.") }}</li>
+                        <li>{{ _("Forgot an administrator password? Run this on the server; the account gets a one-time password and must choose a new one at its next sign-in:") }} <code>docker compose exec -u appuser vinted-notifications python reset_admin_password.py --generate</code></li>
+                        <li>{{ _("Serve the interface over HTTPS (for example behind a reverse proxy) if you reach it from outside your home network.") }}</li>
+                    </ul>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <div class="ios-title">{{ _("Web interface password") }}</div>
+            <div class="ios-group">
+                <div class="ios-row">
+                    <span class="ios-label"><span class="row-ico" style="--c: {{ '#34C759' if (password_set or password_env) else '#FF9500' }}"><i class="bi {{ 'bi-lock-fill' if (password_set or password_env) else 'bi-unlock-fill' }}"></i></span>{{ _("Set by environment") if password_env else (_("Protected") if password_set else _("Open to anyone who can reach this port")) }}</span>
+                </div>
+            </div>
+            {% if password_env %}
+            <p class="ios-foot">{{ _("The password comes from the") }} <code>VN_WEB_PASSWORD</code>{{ _(" environment variable. Change or remove it there and restart the container.") }}</p>
+            {% else %}
+            <p class="ios-foot">{% if password_set %}{{ _("Change the password, or remove it to open the interface again.") }}{% else %}{{ _("Without a password, anyone who can open this page can change settings and delete data.") }}{% endif %}</p>
+            <form action="/security/password" method="post" class="ios-group">
+                {% if password_set %}
+                <label class="ios-row" for="current_password"><span class="ios-label">{{ _("Current password") }}</span>
+                    <input type="password" class="ios-input" id="current_password" name="current_password" autocomplete="current-password" required></label>
+                {% endif %}
+                <label class="ios-row" for="new_password"><span class="ios-label">{{ _('New password') if password_set else _('Password') }}</span>
+                    <input type="password" class="ios-input" id="new_password" name="new_password" minlength="{{ min_password_length }}" data-pw-meter="{{ min_password_length }}" autocomplete="new-password" required></label>
+                <label class="ios-row" for="confirm_password"><span class="ios-label">{{ _("Repeat password") }}</span>
+                    <input type="password" class="ios-input" id="confirm_password" name="confirm_password" minlength="{{ min_password_length }}" autocomplete="new-password" required></label>
+                <button type="submit" class="ios-row ios-button">{{ _('Change password') if password_set else _('Set password') }}</button>
+            </form>
+            <p class="ios-foot">{{ _("At least %(n)s characters; a phrase of a few words works well. Common and breached passwords are refused.", n=min_password_length) }}</p>
+
+            {% if password_set %}
+            <div class="ios-title">{{ _("Remove password") }}</div>
+            <form action="/security/password/remove" method="post" class="ios-group">
+                <label class="ios-row" for="remove_current"><span class="ios-label">{{ _("Current password") }}</span>
+                    <input type="password" class="ios-input" id="remove_current" name="current_password" autocomplete="current-password" required></label>
+                <button type="submit" class="ios-row ios-button ios-danger">{{ _("Remove password") }}</button>
+            </form>
+            {% endif %}
+            {% endif %}
+
+            <div class="ios-title">{{ _("Multiple accounts") }}</div>
+            <form action="/accounts/enable" method="post" class="ios-group">
+                {% if password_set and not password_env %}
+                <label class="ios-row" for="enable_current"><span class="ios-label">{{ _("Current password") }}</span>
+                    <input type="password" class="ios-input" id="enable_current" name="current_password" autocomplete="current-password" required></label>
+                {% endif %}
+                <label class="ios-row" for="admin_username"><span class="ios-label">{{ _("Administrator username") }}</span>
+                    <input type="text" class="ios-input" id="admin_username" name="username" pattern="[A-Za-z0-9_.\-]{3,32}" autocomplete="username" autocapitalize="none" required></label>
+                <label class="ios-row" for="admin_password"><span class="ios-label">{{ _("Password") }}</span>
+                    <input type="password" class="ios-input" id="admin_password" name="new_password" minlength="{{ min_password_length }}" data-pw-meter="{{ min_password_length }}" autocomplete="new-password" required></label>
+                <label class="ios-row" for="admin_confirm"><span class="ios-label">{{ _("Repeat password") }}</span>
+                    <input type="password" class="ios-input" id="admin_confirm" name="confirm_password" minlength="{{ min_password_length }}" autocomplete="new-password" required></label>
+                <button type="submit" class="ios-row ios-button">{{ _("Turn on accounts") }}</button>
+            </form>
+            <p class="ios-foot">{{ _("Turn on accounts to share this server: everyone signs in and gets their own queries, items, notifications and settings. What exists today moves to the administrator account you create here.") }}</p>
+            {% endif %}
+        </section>
     </div>
 </div>
 {% endblock %}
@@ -306,169 +336,216 @@
 {% block scripts %}
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Process control buttons
-        const processButtons = document.querySelectorAll('.process-control');
-        processButtons.forEach(button => {
-            button.addEventListener('click', function () {
-                const process = this.getAttribute('data-process');
-                const action = this.getAttribute('data-action');
+        // ---- Section tabs (kept in the URL hash) ----
+        const panes = Array.from(document.querySelectorAll('.settings-nav [data-pane]')).map(function (a) { return a.dataset.pane; });
+        const form = document.getElementById('configForm');
 
-                // Disable all buttons for this process
-                document.querySelectorAll(`.process-control[data-process="${process}"]`).forEach(btn => {
-                    btn.disabled = true;
-                });
+        function show(name) {
+            if (panes.indexOf(name) === -1) name = 'general';
+            panes.forEach(function (p) {
+                document.getElementById('pane-' + p).classList.toggle('active', p === name);
+                document.querySelector('.settings-nav [data-pane="' + p + '"]').classList.toggle('active', p === name);
+            });
+            // The settings form (and its save bar) is hidden on the account section
+            form.classList.toggle('d-none', name === 'security');
+        }
 
-                fetch(`/control/${process}/${action}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                })
-                    .then(response => response.json())
-                    .then(data => {
-                        // Show alert
-                        const alertClass = data.status === 'success' ? 'success' :
-                            data.status === 'warning' ? 'warning' : 'danger';
-
-                        const alertDiv = document.createElement('div');
-                        alertDiv.className = `alert alert-${alertClass} alert-dismissible fade show flash-message`;
-                        alertDiv.setAttribute('role', 'alert');
-                        alertDiv.innerHTML = `
-                        ${data.message}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    `;
-
-                        document.querySelector('.flash-messages').appendChild(alertDiv);
-
-                        // Auto-dismiss after 5 seconds
-                        setTimeout(() => {
-                            const bsAlert = new bootstrap.Alert(alertDiv);
-                            bsAlert.close();
-                        }, 5000);
-
-                        // Update status
-                        checkProcessStatus();
-                    })
-                    .catch(error => {
-                        console.error('Error:', error);
-                        // Re-enable buttons
-                        document.querySelectorAll(`.process-control[data-process="${process}"]`).forEach(btn => {
-                            btn.disabled = false;
-                        });
-                    });
+        document.querySelectorAll('.settings-nav a').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                history.replaceState(null, '', '#' + link.dataset.pane);
+                show(link.dataset.pane);
             });
         });
+        show(location.hash.slice(1));
+        window.addEventListener('hashchange', function () { show(location.hash.slice(1)); });
 
-        // Check process status
+        // ---- Copy the feed address ----
+        const copyBtn = document.getElementById('copyFeed');
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function () {
+                const field = document.getElementById('feedUrl');
+                field.select();
+                if (navigator.clipboard) navigator.clipboard.writeText(field.value); else document.execCommand('copy');
+                copyBtn.innerHTML = '<i class="bi bi-check2"></i>';
+                setTimeout(function () { copyBtn.innerHTML = '<i class="bi bi-clipboard"></i>'; }, 1500);
+            });
+        }
+
+        // ---- Process control ----
+        function toast(message, status) {
+            const kind = status === 'success' ? 'success' : status === 'warning' ? 'warning' : 'danger';
+            const el = document.createElement('div');
+            el.className = 'alert alert-' + kind + ' alert-dismissible fade show flash-message';
+            el.setAttribute('role', 'alert');
+            el.textContent = message;
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'btn-close';
+            close.setAttribute('data-bs-dismiss', 'alert');
+            close.setAttribute('aria-label', vnT('Close'));
+            el.appendChild(close);
+            document.querySelector('.flash-messages').appendChild(el);
+            setTimeout(function () { bootstrap.Alert.getOrCreateInstance(el).close(); }, 5000);
+        }
+
+        function setButtons(process, running) {
+            document.querySelector('.process-status[data-process="' + process + '"]').textContent = running ? vnT('Running') : vnT('Stopped');
+            document.querySelector('.process-control[data-process="' + process + '"][data-action="start"]').style.display = running ? 'none' : '';
+            document.querySelector('.process-control[data-process="' + process + '"][data-action="stop"]').style.display = running ? '' : 'none';
+        }
+
         function checkProcessStatus() {
-            fetch('/control/status', {
-                method: 'GET'
-            })
-                .then(response => response.json())
-                .then(data => {
-                    // Update status text
-                    document.querySelector('.process-status[data-process="telegram"]').textContent =
-                        data.telegram ? 'Running' : 'Stopped';
-                    document.querySelector('.process-status[data-process="rss"]').textContent =
-                        data.rss ? 'Running' : 'Stopped';
-
-                    // Update button visibility
-                    document.querySelector('.process-control[data-process="telegram"][data-action="start"]').style.display =
-                        data.telegram ? 'none' : 'inline-block';
-                    document.querySelector('.process-control[data-process="telegram"][data-action="stop"]').style.display =
-                        data.telegram ? 'inline-block' : 'none';
-                    document.querySelector('.process-control[data-process="rss"][data-action="start"]').style.display =
-                        data.rss ? 'none' : 'inline-block';
-                    document.querySelector('.process-control[data-process="rss"][data-action="stop"]').style.display =
-                        data.rss ? 'inline-block' : 'none';
-
-                    // Re-enable buttons
-                    document.querySelectorAll('.process-control').forEach(btn => {
-                        btn.disabled = false;
-                    });
+            fetch('/control/status', {headers: {'X-Requested-With': 'fetch'}})
+                .then(function (response) { return response.json(); })
+                .then(function (data) {
+                    setButtons('telegram', data.telegram);
+                    setButtons('rss', data.rss);
                 })
-                .catch(error => {
+                .catch(function (error) {
                     console.error('Error:', error);
-                    // Set status to unknown
-                    document.querySelectorAll('.process-status').forEach(status => {
-                        status.textContent = 'Unknown';
-                    });
-                    // Re-enable all buttons
-                    document.querySelectorAll('.process-control').forEach(btn => {
-                        btn.disabled = false;
-                        btn.style.display = 'inline-block';
-                    });
+                    document.querySelectorAll('.process-status').forEach(function (s) { s.textContent = vnT('Unknown'); });
+                })
+                .finally(function () {
+                    document.querySelectorAll('.process-control').forEach(function (b) { b.disabled = false; });
                 });
         }
 
-        // Initial check
+        document.querySelectorAll('.process-control').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const process = button.dataset.process;
+                document.querySelectorAll('.process-control[data-process="' + process + '"]').forEach(function (b) { b.disabled = true; });
+                fetch('/control/' + process + '/' + button.dataset.action, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'X-Requested-With': 'fetch'}
+                })
+                    .then(function (response) { return response.json(); })
+                    .then(function (data) { toast(data.message, data.status); checkProcessStatus(); })
+                    .catch(function (error) { console.error('Error:', error); checkProcessStatus(); });
+            });
+        });
         checkProcessStatus();
 
-        // Banwords handling
-        const banwordsInput = document.getElementById('banwords-input');
-        const addBanwordBtn = document.getElementById('add-banword-btn');
-        const banwordsContainer = document.getElementById('banwords-container');
-        const banwordsHiddenInput = document.getElementById('banwords');
+        // ---- Banned words ----
+        const input = document.getElementById('banwords-input');
+        const container = document.getElementById('banwords-container');
+        const hidden = document.getElementById('banwords');
 
-        // Function to create a banword tag
-        function createBanwordTag(word) {
-            if (!word.trim()) return;
+        function syncHidden() {
+            hidden.value = Array.from(container.querySelectorAll('.banword-tag')).map(function (t) { return t.dataset.word; }).join('|||');
+        }
 
-            // Check if the word already exists
-            const existingTags = banwordsContainer.querySelectorAll('.banword-tag');
-            for (let tag of existingTags) {
-                if (tag.dataset.word.toLowerCase() === word.toLowerCase().trim()) {
-                    return; // Word already exists, don't add it again
-                }
-            }
-
+        function addBanword(word) {
+            word = word.trim();
+            if (!word) return;
+            const exists = Array.from(container.querySelectorAll('.banword-tag'))
+                .some(function (t) { return t.dataset.word.toLowerCase() === word.toLowerCase(); });
+            if (exists) return;
             const tag = document.createElement('span');
-            tag.className = 'badge bg-secondary me-1 mb-1 banword-tag';
-            tag.dataset.word = word.trim();
-            tag.innerHTML = `${word.trim()} <i class="bi bi-x-circle" style="cursor: pointer;"></i>`;
-
-            // Add click event to remove the tag
-            tag.querySelector('i').addEventListener('click', function () {
-                tag.remove();
-                updateHiddenInput();
-            });
-
-            banwordsContainer.appendChild(tag);
-            updateHiddenInput();
+            tag.className = 'chip banword-tag';
+            tag.dataset.word = word;
+            tag.append(word + ' ');
+            const remove = document.createElement('button');
+            remove.type = 'button';
+            remove.className = 'chip-x';
+            remove.setAttribute('aria-label', vnT('Remove %(name)s', {name: word}));
+            remove.innerHTML = '<i class="bi bi-x-lg"></i>';
+            remove.addEventListener('click', function () { tag.remove(); syncHidden(); });
+            tag.appendChild(remove);
+            container.appendChild(tag);
+            syncHidden();
         }
 
-        // Function to update the hidden input with all banwords
-        function updateHiddenInput() {
-            const tags = banwordsContainer.querySelectorAll('.banword-tag');
-            const words = Array.from(tags).map(tag => tag.dataset.word);
-            banwordsHiddenInput.value = words.join('|||');
-        }
-
-        // Add banword when clicking the Add button
-        addBanwordBtn.addEventListener('click', function () {
-            createBanwordTag(banwordsInput.value);
-            banwordsInput.value = '';
-            banwordsInput.focus();
+        document.getElementById('add-banword-btn').addEventListener('click', function () {
+            addBanword(input.value);
+            input.value = '';
+            input.focus();
         });
-
-        // Add banword when pressing Enter in the input field
-        banwordsInput.addEventListener('keypress', function (e) {
+        input.addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                createBanwordTag(banwordsInput.value);
-                banwordsInput.value = '';
+                addBanword(input.value);
+                input.value = '';
             }
         });
-
-        // Initialize banwords from the hidden input
-        if (banwordsHiddenInput.value) {
-            const initialBanwords = banwordsHiddenInput.value.split('|||');
-            initialBanwords.forEach(word => {
-                if (word.trim()) {
-                    createBanwordTag(word);
-                }
-            });
-        }
+        if (hidden.value) hidden.value.split('|||').forEach(addBanword);
     });
-</script>
+
+        // ---- Web Push controls
+        (function () {
+            const status = document.getElementById('pushStatus');
+            const toggle = document.getElementById('pushToggle');
+            const test = document.getElementById('pushTest');
+            const devices = document.getElementById('pushDevices');
+            let lastError = '';
+            if (!status || !window.vnPush) return;
+            const texts = {
+                unsupported: vnT('This browser cannot receive push notifications.'),
+                'ios-install': vnT('Add the app to the Home Screen to receive notifications on this iPhone or iPad.'),
+                denied: vnT('Blocked in the browser settings for this site.'),
+                off: vnT('Off on this device'),
+                on: vnT('On for this device')
+            };
+            function refresh() {
+                vnPush.state().then(function (state) {
+                    status.textContent = lastError || texts[state];
+                    toggle.hidden = !(state === 'off' || state === 'on');
+                    toggle.textContent = state === 'on' ? vnT('Turn off') : vnT('Turn on');
+                    toggle.className = 'btn btn-sm ' + (state === 'on' ? 'btn-outline-secondary' : 'btn-primary');
+                    toggle.dataset.state = state;
+                    test.hidden = state !== 'on';
+                });
+            }
+            const diag = document.getElementById('pushDiag');
+            function showDiagnosis() {
+                vnPush.diagnose().then(function (d) {
+                    diag.textContent = vnT('Permission: %(p)s', {p: d.permission}) + ' · ' + vnT('Installed app: %(v)s', {v: d.installed ? vnT('yes') : vnT('no')}) + ' · ' + vnT('Service worker: %(w)s', {w: d.worker});
+                });
+            }
+            toggle.addEventListener('click', function (event) {
+                event.preventDefault();
+                const turningOn = toggle.dataset.state !== 'on';
+                // The permission prompt has to be requested synchronously inside this tap, so nothing precedes this call
+                let action;
+                try {
+                    action = turningOn ? vnPush.enable() : vnPush.disable();
+                } catch (e) {
+                    action = Promise.reject(e);
+                }
+                toggle.disabled = true;
+                action
+                    .then(function (result) { lastError = ''; if (result && result.devices !== undefined) devices.textContent = result.devices; })
+                    .catch(function (e) {
+                        // Say what actually went wrong instead of guessing "blocked"
+                        lastError = (e && e.code === 'denied') ? '' : vnT('Could not turn on notifications: %(e)s', {e: (e && e.message) || e});
+                    })
+                    .then(function () {
+                        toggle.disabled = false;
+                        showDiagnosis();
+                        refresh();
+                    });
+            });
+            const received = document.getElementById('pushReceived');
+            // The service worker reports back when a push reaches this device
+            if (navigator.serviceWorker) {
+                navigator.serviceWorker.addEventListener('message', function (event) {
+                    const type = event.data && event.data.type;
+                    if (type === 'push-received') received.textContent = vnT('A push reached this device.');
+                    if (type === 'push-shown') received.textContent = vnT('A push reached this device and its notification was shown.');
+                });
+            }
+            test.addEventListener('click', function (event) {
+                event.preventDefault();
+                test.disabled = true;
+                received.textContent = '';
+                // Sent a few seconds later so there is time to leave the app: iOS shows no banner for the app on screen
+                vnPush.test(8)
+                    .then(function (r) { received.textContent = r.message || ''; })
+                    .catch(function (e) { received.textContent = vnT('Could not turn on notifications: %(e)s', {e: (e && e.message) || e}); })
+                    .then(function () { test.disabled = false; });
+            });
+            refresh();
+            showDiagnosis();
+        })();
+    </script>
 {% endblock %}
